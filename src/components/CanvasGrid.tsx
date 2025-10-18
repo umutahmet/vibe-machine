@@ -61,7 +61,7 @@ export default function CanvasGrid({
 		canvas.width = canvas.clientWidth || 800;
 		const width = canvas.width;
 		canvas.height = rulerHeight + gridHeight;
-		canvas.style.height = canvas.height + "px";
+		canvas.style.height = `${canvas.height}px`;
 		ctx.clearRect(0, 0, width, canvas.height);
 
 		// draw ruler

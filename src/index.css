@@ -1,5 +1,6 @@
 :root {
-	font-family: "Inter", "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont,
+	font-family:
+		"Inter", "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont,
 		"Segoe UI", sans-serif;
 	line-height: 1.4;
 	font-weight: 400;
@@ -43,7 +44,6 @@ textarea {
 	font-family: inherit;
 }
 
-
 .track-header {
 	display: flex;
 	flex-direction: column;
@@ -52,10 +52,10 @@ textarea {
 
 .track-title {
 	font-size: 0.85em;
-	color: rgba(255,255,255,0.9);
+	color: rgba(255, 255, 255, 0.9);
 }
 
 .track-name {
 	font-size: 0.75em;
-	color: rgba(255,255,255,0.6);
+	color: rgba(255, 255, 255, 0.6);
 }

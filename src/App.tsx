@@ -1,16 +1,19 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
 import "./App.css";
 import CanvasGrid from "./components/CanvasGrid";
 import ChatBox, { type ChatBoxHandle } from "./components/ChatBox";
+import Desktop from "./components/Desktop";
 import TransportControls from "./components/TransportControls";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import { usePatternState } from "./hooks/usePatternState";
 import { useToneEngine } from "./hooks/useToneEngine";
 import { useTool } from "./hooks/useTool";
+import { useWindowManager } from "./hooks/useWindowManager";
 import { parseCommand } from "./lib/patternParser";
 import shortcuts, { normalizeKey } from "./lib/shortcuts";
 import ToolName from "./lib/tools";
+import type { WindowState } from "./types";
 
 function App() {
 	const { pattern, setBPM, setPattern, setLoop, addHit, removeHit } =
@@ -18,7 +21,24 @@ function App() {
 	const { tool, setTool } = useTool(ToolName.Arrow);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const trackNames = Object.keys(pattern.tracks);
-	const totalSteps = pattern.bars * 16;
+
+	const { windows, addWindow, updateWindowPosition, bringToFront } =
+		useWindowManager();
+
+	const initializedRef = useRef(false);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: 🤷‍♂️
+	useEffect(() => {
+		if (!initializedRef.current) {
+			// Initialize default windows
+			addWindow("transport", { x: 50, y: 50 }, { width: 400, height: 100 });
+			addWindow("grid", { x: 50, y: 200 }, { width: 800, height: 400 });
+			addWindow("chat", { x: 900, y: 50 }, { width: 300, height: 200 });
+			addWindow("tracks", { x: 900, y: 300 }, { width: 300, height: 300 });
+			initializedRef.current = true;
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useToneEngine(pattern, isPlaying);
 
@@ -40,7 +60,6 @@ function App() {
 		},
 		[shortcuts.prevBar]: (e) => {
 			e.preventDefault();
-			// move loop start/back one bar if loop enabled else noop
 			setPattern((p) => {
 				const loop = p.loop ?? { enabled: false, start: 0, end: p.bars };
 				if (!loop.enabled) return p;
@@ -69,6 +88,7 @@ function App() {
 				},
 			}));
 		},
+		// biome-ignore lint/complexity/useLiteralKeys: 🤷‍♂️
 		["Enter"]: (e) => {
 			// stop and rewind to beginning
 			e.preventDefault();
@@ -99,24 +119,16 @@ function App() {
 		},
 	});
 
-	return (
-		<div className="app-shell">
-			<header className="top-bar">
-				<div className="brand-cluster">
-					<span className="brand-mark" aria-hidden />
-					<div className="brand-meta">
-						<span className="brand-title">Vibe Machine</span>
-						<span className="brand-caption">Session Console</span>
-					</div>
-				</div>
-
-				<div className="transport-dock">
+	const renderWindowContent = (window: WindowState) => {
+		switch (window.type) {
+			case "transport":
+				return (
 					<TransportControls
 						bpm={pattern.bpm}
 						isPlaying={isPlaying}
 						onPlayToggle={async () => {
 							if (!isPlaying) {
-								// start audio context in response to user gesture
+								// start audio context on play handled by TransportControls' onPlayToggle already
 								try {
 									await Tone.start();
 								} catch {
@@ -130,41 +142,10 @@ function App() {
 						loop={pattern.loop}
 						setLoop={(l) => setLoop(l)}
 					/>
-				</div>
-
-				<div className="session-readout">
-					<span>{trackNames.length} tracks</span>
-					<span>{totalSteps} steps</span>
-				</div>
-			</header>
-
-			<main className="workspace">
-				<aside className="side-rail">
-					<span className="rail-label">Tracks</span>
-					<ul className="track-list">
-						{trackNames.map((name, i) => (
-							<li key={name} className="track-pill">
-								<div className="track-header">
-									<span className="track-title">Track {i + 1}</span>
-									<span className="track-name">{name}</span>
-								</div>
-							</li>
-						))}
-					</ul>
-				</aside>
-
-				<section className="grid-panel">
-					<div className="panel-header">
-						<div className="panel-title">
-							<span className="panel-label">Pattern Grid</span>
-							<span className="panel-caption">
-								Bars {pattern.bars} • BPM {pattern.bpm}
-							</span>
-						</div>
-						<div className="panel-divider" aria-hidden />
-					</div>
-
-					<div className="canvas-wrap">
+				);
+			case "grid":
+				return (
+					<div>
 						<div
 							style={{
 								display: "flex",
@@ -201,19 +182,34 @@ function App() {
 							onSetLoop={setLoop}
 						/>
 					</div>
-				</section>
-			</main>
+				);
+			case "chat":
+				return <ChatBox ref={chatRef} onCommand={handleCommand} />;
+			case "tracks":
+				return (
+					<ul className="track-list">
+						{trackNames.map((name, i) => (
+							<li key={name} className="track-pill">
+								<div className="track-header">
+									<span className="track-title">Track {i + 1}</span>
+									<span className="track-name">{name}</span>
+								</div>
+							</li>
+						))}
+					</ul>
+				);
+			default:
+				return <div>Unknown window type</div>;
+		}
+	};
 
-			<footer className="command-dock">
-				<div className="command-header">
-					<span className="command-led" aria-hidden />
-					<span className="command-title">Command Line Interface</span>
-				</div>
-				<div className="command-form">
-					<ChatBox ref={chatRef} onCommand={handleCommand} />
-				</div>
-			</footer>
-		</div>
+	return (
+		<Desktop
+			windows={windows}
+			onPositionChange={updateWindowPosition}
+			onBringToFront={bringToFront}
+			renderWindowContent={renderWindowContent}
+		/>
 	);
 }
 

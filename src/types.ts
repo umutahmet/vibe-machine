@@ -40,3 +40,16 @@ export const DEFAULT_PATTERN: Pattern = {
 		end: 4,
 	},
 };
+
+// Window system types
+export type WindowType = "transport" | "grid" | "chat" | "tracks";
+
+export type WindowState = {
+	id: string;
+	type: WindowType;
+	position: { x: number; y: number };
+	size: { width: number; height: number };
+	zIndex: number;
+	isMinimized?: boolean;
+	isMaximized?: boolean;
+};
