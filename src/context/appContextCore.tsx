@@ -18,6 +18,10 @@ export type AppContextValue = {
 	addWindow: (w: WindowState) => void;
 	loadWindows: (w: WindowState[]) => void;
 	updateWindowPosition: (id: string, pos: { x: number; y: number }) => void;
+	updateWindowSize: (
+		id: string,
+		size: { width: number; height: number },
+	) => void;
 	bringToFront: (id: string) => void;
 	chatRef: React.RefObject<ChatBoxHandle | null>;
 	handleCommand: (cmd: string) => void;

@@ -22,6 +22,9 @@
 	border-radius: 16px;
 	background: var(--surface-dark);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden; /* ensure children don't escape rounded corners */
 }
 
 .window-title-bar {
@@ -38,7 +41,10 @@
 }
 
 .window-title {
+	font-size: 0.75rem;
+	letter-spacing: 0.16em;
 	color: var(--text-offwhite);
+	text-transform: uppercase;
 }
 
 .window-close {
@@ -62,6 +68,31 @@
 
 .window-content {
 	padding: 16px;
+	flex: 1 1 auto; /* allow content area to grow/shrink */
+}
+
+/* When the window has an explicit height, allow scrolling inside. Otherwise let content expand the window */
+.floating-window.fixed-size .window-content {
+	overflow: auto;
+}
+
+/* Resize handle in bottom-right corner */
+.window-resize-handle {
+	position: absolute;
+	width: 18px;
+	height: 18px;
+	right: 8px;
+	bottom: 8px;
+	cursor: nwse-resize;
+	border-radius: 4px;
+	background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,0,0,0.06));
+	box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+	z-index: 5;
+}
+
+.floating-window {
+	/* ensure resize handle sits above content */
+	padding-bottom: 4px; /* small space so handle doesn't overlap content edges */
 }
 
 .top-bar {

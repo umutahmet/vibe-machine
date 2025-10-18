@@ -54,6 +54,13 @@ export function useWindowManager() {
 		[],
 	);
 
+	const updateWindowSize = useCallback(
+		(id: string, size: { width: number; height: number }) => {
+			setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, size } : w)));
+		},
+		[],
+	);
+
 	const bringToFront = useCallback((id: string) => {
 		setWindows((prev) => {
 			const window = prev.find((w) => w.id === id);
@@ -77,6 +84,7 @@ export function useWindowManager() {
 		removeWindow,
 		updateWindowPosition,
 		bringToFront,
+		updateWindowSize,
 		getWindow,
 	};
 }

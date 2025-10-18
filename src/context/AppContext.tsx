@@ -25,6 +25,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		loadWindows,
 		updateWindowPosition,
 		bringToFront,
+		updateWindowSize,
 	} = useWindowManager();
 
 	useWindowInitialization({ addWindow, loadWindows });
@@ -62,6 +63,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		addWindow,
 		loadWindows,
 		updateWindowPosition,
+		updateWindowSize,
 		bringToFront,
 		chatRef,
 		handleCommand,

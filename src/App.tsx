@@ -10,7 +10,8 @@ import { useAppContext } from "./context/appContextCore";
 import type { WindowState } from "./types";
 
 function AppInner() {
-	const { windows, updateWindowPosition, bringToFront } = useAppContext();
+	const { windows, updateWindowPosition, bringToFront, updateWindowSize } =
+		useAppContext();
 
 	const renderWindowContent = (window: WindowState) => {
 		switch (window.type) {
@@ -33,6 +34,7 @@ function AppInner() {
 		<Desktop
 			windows={windows}
 			onPositionChange={updateWindowPosition}
+			onSizeChange={updateWindowSize}
 			onBringToFront={bringToFront}
 			renderWindowContent={renderWindowContent}
 		/>

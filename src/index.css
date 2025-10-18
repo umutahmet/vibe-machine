@@ -72,6 +72,7 @@ body {
 	min-height: 100vh;
 	background-color: var(--page-background);
 	color: inherit;
+	user-select: none;
 }
 
 #root {
