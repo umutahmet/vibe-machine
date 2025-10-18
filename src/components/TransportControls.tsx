@@ -12,18 +12,21 @@ export default function TransportControls({
 	onBpmChange,
 }: Props) {
 	return (
-		<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-			<button onClick={onPlayToggle}>{isPlaying ? "Stop" : "Play"}</button>
-			<label>
-				BPM:{" "}
+		<div className="transport-row">
+			<button type="button" onClick={onPlayToggle}>
+				{isPlaying ? "Stop" : "Play"}
+			</button>
+			<label className="bpm-label">
+				BPM:
 				<input
+					className="bpm-range"
 					type="range"
 					min={60}
 					max={200}
 					value={bpm}
 					onChange={(e) => onBpmChange(Number(e.target.value))}
-				/>{" "}
-				{bpm}
+				/>
+				<span className="bpm-value">{bpm}</span>
 			</label>
 		</div>
 	);

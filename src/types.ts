@@ -7,11 +7,11 @@ export type Pattern = {
 };
 
 export const DEFAULT_PATTERN: Pattern = {
-	bpm: 120,
-	bars: 2,
+	bpm: 170,
+	bars: 4,
 	tracks: {
-		kick: [0, 1, 2, 3],
-		snare: [1.5, 3.5],
+		kick: [0, 2.5],
+		snare: [1, 3],
 		hat: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5],
 	},
 };

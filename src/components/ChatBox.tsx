@@ -15,7 +15,7 @@ export default function ChatBox({ onCommand }: Props) {
 	};
 
 	return (
-		<form onSubmit={submit} style={{ display: "flex", gap: 8 }}>
+		<form onSubmit={submit} className="chat-form">
 			<input
 				value={value}
 				onChange={(e) => setValue(e.target.value)}

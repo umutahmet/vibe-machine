@@ -24,8 +24,7 @@ a:hover {
 
 body {
 	margin: 0;
-	display: flex;
-	place-items: center;
+	/* use normal document flow; center main container via margin on .app-root */
 	min-width: 320px;
 	min-height: 100vh;
 }
@@ -65,4 +64,51 @@ button:focus-visible {
 	button {
 		background-color: #f9f9f9;
 	}
+}
+
+.app-root {
+	padding: 20px;
+	max-width: 1000px;
+	margin: 0 auto;
+}
+
+.transport-row {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.bpm-label {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.bpm-range {
+	vertical-align: middle;
+}
+
+.canvas-wrap {
+	margin-top: 12px;
+}
+
+.vibe-canvas {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	height: 200px;
+	background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+	border-radius: 8px;
+	border: 1px solid rgba(255,255,255,0.04);
+	display: block;
+}
+
+.chat-wrap {
+	margin-top: 12px;
+}
+
+.chat-form {
+	display: flex;
+	gap: 8px;
 }

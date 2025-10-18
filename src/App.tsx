@@ -20,7 +20,7 @@ function App() {
 	};
 
 	return (
-		<div style={{ padding: 20 }}>
+		<div className="app-root">
 			<h1>Vibe Machine</h1>
 			<TransportControls
 				bpm={pattern.bpm}
@@ -29,11 +29,11 @@ function App() {
 				onBpmChange={(b) => setBPM(b)}
 			/>
 
-			<div style={{ marginTop: 12 }}>
-				<CanvasGrid pattern={pattern} playhead={0} />
+			<div className="canvas-wrap">
+				<CanvasGrid pattern={pattern} />
 			</div>
 
-			<div style={{ marginTop: 12 }}>
+			<div className="chat-wrap">
 				<ChatBox onCommand={handleCommand} />
 			</div>
 		</div>
