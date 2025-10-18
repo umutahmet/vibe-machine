@@ -2,7 +2,6 @@ import type { Pattern } from "../types";
 import { drawGridBody } from "./CanvasGridBody";
 import { drawHits } from "./CanvasHits";
 import { drawRuler } from "./CanvasRuler";
-import { getCanvasColors } from "./canvasConfig";
 
 /**
  * Render the full canvas scene: ruler, grid body, hits, and playhead.
@@ -23,11 +22,30 @@ export function renderCanvas(
 	const ctx = canvas.getContext("2d");
 	if (!ctx) return;
 
-	canvas.width = canvas.clientWidth || 800;
-	const width = canvas.width;
-	canvas.height = rulerHeight + gridHeight;
-	canvas.style.height = `${canvas.height}px`;
-	ctx.clearRect(0, 0, width, canvas.height);
+	// Use devicePixelRatio for crisp rendering on HiDPI displays but avoid
+	// repeatedly changing the canvas DOM width/height which can cause
+	// layout reflows when called many times per second. Only update the
+	// backing bitmap size when it differs from the desired size.
+	const dpr = window.devicePixelRatio || 1;
+	const clientWidth = canvas.clientWidth || 800;
+	const desiredWidth = Math.max(1, Math.floor(clientWidth * dpr));
+	const desiredHeight = Math.max(
+		1,
+		Math.floor((rulerHeight + gridHeight) * dpr),
+	);
+
+	if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+		// Set the backing bitmap size
+		canvas.width = desiredWidth;
+		canvas.height = desiredHeight;
+		// Keep the CSS layout height stable
+		canvas.style.height = `${rulerHeight + gridHeight}px`;
+	}
+
+	// Map drawing coordinates to CSS pixels
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	const width = canvas.width / dpr;
+	ctx.clearRect(0, 0, width, rulerHeight + gridHeight);
 
 	// draw ruler
 	drawRuler(ctx, width, playhead, pattern);
@@ -53,9 +71,5 @@ export function renderCanvas(
 
 	ctx.restore(); // end translate
 
-	// Draw playhead line
-	const COLORS = getCanvasColors();
-	ctx.fillStyle = COLORS.handleFill || `rgba(var(--accent-gold-rgb), 1)`;
-	const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
-	ctx.fillRect(px, 0, 2, canvas.height);
+	// Note: Playhead is now drawn as an overlay element for better event separation
 }

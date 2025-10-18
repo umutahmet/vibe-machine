@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCanvasInteractions } from "../hooks/useCanvasInteractions";
 import { useSmoothedPlayhead } from "../hooks/useSmoothedPlayhead";
 import type { Tool } from "../lib/tools";
@@ -26,6 +26,8 @@ export default function CanvasGrid({
 }: GridProps) {
 	const ref = useRef<HTMLCanvasElement | null>(null);
 	const playhead = useSmoothedPlayhead(pattern);
+	const playheadOverlayRef = useRef<HTMLDivElement | null>(null);
+	const headerRef = useRef<HTMLDivElement | null>(null);
 
 	// Memoized derived values to avoid recalculation on every render
 	const tracks = useMemo(() => Object.keys(pattern.tracks), [pattern.tracks]);
@@ -204,10 +206,103 @@ export default function CanvasGrid({
 		onSetLoop,
 	);
 
+	// Playhead overlay for dragging
+	const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
+
+	useEffect(() => {
+		const overlay = playheadOverlayRef.current;
+		const canvas = ref.current;
+		if (!overlay || !canvas) return;
+
+		let startX = 0;
+		let startBeat = 0;
+		let canvasRect = canvas.getBoundingClientRect();
+		let canvasWidth = canvasRect.width;
+
+		const updatePositions = () => {
+			// re-measure canvas width in case layout changed
+			canvasRect = canvas.getBoundingClientRect();
+			canvasWidth = canvasRect.width;
+			const currentPlayheadPosition =
+				((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * 100;
+			const leftPx = (currentPlayheadPosition / 100) * canvasWidth;
+			const line = overlay.querySelector(".playhead-line") as HTMLElement;
+			const handle = overlay.querySelector(".playhead-handle") as HTMLElement;
+			if (line) line.style.left = `${leftPx}px`;
+			if (handle) {
+				handle.style.left = `${leftPx}px`;
+				handle.style.top = `${rulerHeight - 5}px`;
+			}
+		};
+
+		const handlePointerDown = (e: PointerEvent) => {
+			e.preventDefault();
+			startX = e.clientX;
+			startBeat = playhead;
+			setIsDraggingPlayhead(true);
+			// try to capture on overlay (if it accepts pointer-events), otherwise fallback to canvas
+			try {
+				overlay.setPointerCapture(e.pointerId);
+			} catch {
+				canvas.setPointerCapture?.(e.pointerId);
+			}
+		};
+
+		const handlePointerMove = (e: PointerEvent) => {
+			if (!isDraggingPlayhead) return;
+			const deltaX = e.clientX - startX;
+			const deltaBeat = (deltaX / canvasWidth) * (pattern.bars * 4);
+			const newBeat = Math.max(
+				0,
+				Math.min(startBeat + deltaBeat, pattern.bars * 4),
+			);
+			// Snap to nearest 16th
+			const snappedBeat = Math.round(newBeat * 4) / 4;
+			// Update Tone.Transport
+			const totalBeats = Math.max(0, snappedBeat);
+			const bar = Math.floor(totalBeats / 4);
+			const rem = totalBeats - bar * 4;
+			const quarter = Math.floor(rem);
+			const sixteenths = Math.floor((rem - quarter) * 4);
+			try {
+				// @ts-expect-error Tone typings may not allow string assignment
+				Tone.Transport.position = `${bar}:${quarter}:${sixteenths}`;
+			} catch {
+				// ignore errors from Tone
+			}
+			updatePositions();
+		};
+
+		const handlePointerUp = (e: PointerEvent) => {
+			setIsDraggingPlayhead(false);
+			try {
+				overlay.releasePointerCapture(e.pointerId);
+			} catch {
+				canvas.releasePointerCapture?.(e.pointerId);
+			}
+		};
+
+		// listen on both overlay and canvas to be robust to pointer-events settings
+		overlay.addEventListener("pointerdown", handlePointerDown);
+		canvas.addEventListener("pointerdown", handlePointerDown);
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp);
+
+		// Initial position
+		updatePositions();
+
+		return () => {
+			overlay.removeEventListener("pointerdown", handlePointerDown);
+			canvas.removeEventListener("pointerdown", handlePointerDown);
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+	}, [playhead, pattern.bars, isDraggingPlayhead, rulerHeight]);
+
 	// Render track headers aligned under the ruler and styled via CSS
 	return (
 		<div className="canvas-with-headers">
-			<div className="grid-lane-headers">
+			<div ref={headerRef} className="grid-lane-headers">
 				{tracks.map((trackName, idx) => (
 					<div className="grid-lane-item" key={trackName}>
 						<div className="grid-lane-number">{idx + 1}</div>
@@ -215,8 +310,13 @@ export default function CanvasGrid({
 					</div>
 				))}
 			</div>
-			<div className="canvas-column">
+			<div className="canvas-column" style={{ position: "relative" }}>
 				<canvas ref={ref} className="vibe-canvas" />
+				{/* overlay positioned inside the canvas column so left:0 aligns with grid left */}
+				<div ref={playheadOverlayRef} className="playhead-overlay">
+					<div className="playhead-line" />
+					<div className="playhead-handle" />
+				</div>
 			</div>
 		</div>
 	);

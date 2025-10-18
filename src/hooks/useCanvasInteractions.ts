@@ -90,14 +90,29 @@ export function useCanvasInteractions(
 			}
 		};
 
-		const handlePointerMove = () => {
-			// no-op for now; kept for future visual feedback
+		const handlePointerMove = (ev: PointerEvent) => {
+			if (!canvas) return;
+			const rect = canvas.getBoundingClientRect();
+			const x = ev.clientX - rect.left;
+			// Update cursor if near playhead
+			if (typeof currentPlayhead === "number") {
+				const px =
+					((currentPlayhead % (pattern.bars * 4)) / (pattern.bars * 4)) *
+					canvas.width;
+				const tolerance = 10; // slightly larger for handle
+				if (Math.abs(x - px) <= tolerance) {
+					canvas.style.cursor = "ew-resize";
+				} else {
+					canvas.style.cursor = "";
+				}
+			}
 		};
 
 		const handlePointerUp = (ev: PointerEvent) => {
-			if (!dragState.current || !canvas) return;
+			if (!canvas) return;
 			const rect = canvas.getBoundingClientRect();
 			const x = ev.clientX - rect.left;
+			if (!dragState.current || !canvas) return;
 			const ds = dragState.current;
 			dragState.current = null;
 			canvas.releasePointerCapture(ev.pointerId);

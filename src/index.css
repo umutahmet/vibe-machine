@@ -132,11 +132,12 @@ button {
 .grid-lane-headers {
 	display: flex;
 	flex-direction: column;
+	flex: 0 0 auto;
 	/* push headers down to make room for the canvas ruler */
 	padding-top: var(--ruler-height);
 	background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.03));
 	border-right: 1px solid rgba(var(--muted-border-2-rgb), 0.12);
-	min-width: 100px;
+	width: 150px;
 }
 
 .grid-lane-item {
