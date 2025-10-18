@@ -42,3 +42,20 @@ button,
 textarea {
 	font-family: inherit;
 }
+
+
+.track-header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.track-title {
+	font-size: 0.85em;
+	color: rgba(255,255,255,0.9);
+}
+
+.track-name {
+	font-size: 0.75em;
+	color: rgba(255,255,255,0.6);
+}

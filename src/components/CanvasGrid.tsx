@@ -85,19 +85,24 @@ export default function CanvasGrid({ pattern }: Props) {
 			ctx.restore();
 		}
 
-		// draw hits
+		// draw hits from blocks
 		tracks.forEach((t, yi) => {
-			const hits = pattern.tracks[t];
-			hits.forEach((h) => {
-				const stepIndex = Math.floor(h * 4); // assuming h is in quarter beats
-				const x = (stepIndex / steps) * width;
-				const y = (yi / tracks.length) * height;
-				const rectHeight = trackHeight - 4;
-				const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
-				ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
-				ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
-				ctx.shadowBlur = 12;
-				ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
+			const track = pattern.tracks[t];
+			if (!track || !Array.isArray(track.blocks)) return;
+			track.blocks.forEach((b) => {
+				const blockStartQ = b.start * 4; // quarter-note beats at block start
+				b.hits.forEach((rel) => {
+					const abs = blockStartQ + rel; // absolute quarter-note beat position
+					const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
+					const x = (stepIndex / steps) * width;
+					const y = (yi / tracks.length) * height;
+					const rectHeight = trackHeight - 4;
+					const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
+					ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
+					ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
+					ctx.shadowBlur = 12;
+					ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
+				});
 			});
 		});
 

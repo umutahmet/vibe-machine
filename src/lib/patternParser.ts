@@ -7,7 +7,10 @@ export function parseCommand(
 	const tokens = input.toLowerCase().split(/\s+/);
 	if (tokens[0] === "add" && tokens[1]) {
 		const name = tokens[1];
-		const p = { ...pattern, tracks: { ...pattern.tracks, [name]: [] } };
+		const p = {
+			...pattern,
+			tracks: { ...pattern.tracks, [name]: { blocks: [] } },
+		};
 		return { message: `Added track ${name}`, pattern: p };
 	}
 	return { message: `Unknown command: ${input}`, pattern };

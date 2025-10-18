@@ -1,4 +1,17 @@
-export type TrackMap = Record<string, number[]>;
+export type Block = {
+	// start measured in bars (0-based)
+	start: number;
+	// block length in bars
+	bars: number;
+	// hit positions relative to block start, measured in quarter-note beats (e.g. 0, 0.5, 1.5)
+	hits: number[];
+};
+
+export type Track = {
+	blocks: Block[];
+};
+
+export type TrackMap = Record<string, Track>;
 
 export type Pattern = {
 	bpm: number;
@@ -6,8 +19,8 @@ export type Pattern = {
 	tracks: TrackMap;
 	loop?: {
 		enabled: boolean;
-		start: number; // start bar (0-based, in measures)
-		end: number; // end bar (in measures, exclusive when used as X m)
+		start: number; // start bar (0-based)
+		end: number; // end bar (in measures)
 	};
 };
 
@@ -15,9 +28,11 @@ export const DEFAULT_PATTERN: Pattern = {
 	bpm: 170,
 	bars: 4,
 	tracks: {
-		kick: [0, 2.5],
-		snare: [1, 3],
-		hat: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5],
+		kick: { blocks: [{ start: 0, bars: 4, hits: [0, 2.5] }] },
+		snare: { blocks: [{ start: 0, bars: 4, hits: [1, 3] }] },
+		hat: {
+			blocks: [{ start: 0, bars: 4, hits: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5] }],
+		},
 	},
 	loop: {
 		enabled: false,

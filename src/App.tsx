@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as Tone from "tone";
 import "./App.css";
 import CanvasGrid from "./components/CanvasGrid";
 import ChatBox from "./components/ChatBox";
@@ -36,7 +37,17 @@ function App() {
 					<TransportControls
 						bpm={pattern.bpm}
 						isPlaying={isPlaying}
-						onPlayToggle={() => setIsPlaying((s) => !s)}
+						onPlayToggle={async () => {
+							if (!isPlaying) {
+								// start audio context in response to user gesture
+								try {
+									await Tone.start();
+								} catch {
+									// ignore
+								}
+							}
+							setIsPlaying((s) => !s);
+						}}
 						onBpmChange={(b) => setBPM(b)}
 						bars={pattern.bars}
 						loop={pattern.loop}
@@ -52,12 +63,14 @@ function App() {
 
 			<main className="workspace">
 				<aside className="side-rail">
-					<span className="rail-label">Signal Paths</span>
+					<span className="rail-label">Tracks</span>
 					<ul className="track-list">
-						{trackNames.map((name) => (
+						{trackNames.map((name, i) => (
 							<li key={name} className="track-pill">
-								<span className="pill-indicator" aria-hidden />
-								<span className="pill-name">{name}</span>
+								<div className="track-header">
+									<span className="track-title">Track {i + 1}</span>
+									<span className="track-name">{name}</span>
+								</div>
 							</li>
 						))}
 					</ul>

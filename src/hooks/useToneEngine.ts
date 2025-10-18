@@ -43,7 +43,7 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 		const sampleMap: Record<string, string> = {
 			kick: "/drums/kicks/LA_Kick01.wav",
 			snare: "/drums/claps-snares/LA_Snare01.wav",
-			hat: "/drums/hats/LA_Hat01.wav",
+			hat: "/drums/hats/LA_Hat03.wav",
 		};
 
 		const ensurePlayers = async () => {
@@ -72,17 +72,45 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 			await ensurePlayers();
 
 			// create instruments per track (use preloaded players when available)
-			Object.keys(pattern.tracks).forEach((name) => {
+			// collect instrument events across all tracks/blocks
+			const instrumentEvents: Record<string, number[]> = {};
+			Object.entries(pattern.tracks).forEach(([trackName, tr]) => {
+				tr.blocks.forEach((b) => {
+					const blockStartQ = b.start * 4;
+					// new format: b.hits is an object mapping instrument->positions
+					if (b.hits && typeof b.hits === "object" && !Array.isArray(b.hits)) {
+						Object.entries(b.hits as Record<string, number[]>).forEach(
+							([instr, arr]) => {
+								(arr || []).forEach((rel) => {
+									const abs = blockStartQ + rel;
+									instrumentEvents[instr] = instrumentEvents[instr] || [];
+									instrumentEvents[instr].push(abs);
+								});
+							},
+						);
+					} else if (Array.isArray(b.hits)) {
+						// legacy format: hits array belongs to the track itself (trackName is the instrument)
+						(b.hits as number[]).forEach((rel) => {
+							const abs = blockStartQ + rel;
+							instrumentEvents[trackName] = instrumentEvents[trackName] || [];
+							instrumentEvents[trackName].push(abs);
+						});
+					}
+				});
+			});
+
+			// create parts per instrument
+			Object.entries(instrumentEvents).forEach(([instr, positions]) => {
 				let inst:
 					| Tone.Synth
 					| Tone.NoiseSynth
 					| Tone.MembraneSynth
 					| Tone.MetalSynth
 					| Tone.Player;
-				if (playersLoadedRef.current && playersRef.current[name]) {
-					inst = playersRef.current[name];
+				if (playersLoadedRef.current && playersRef.current[instr]) {
+					inst = playersRef.current[instr];
 				} else {
-					switch (name) {
+					switch (instr) {
 						case "kick":
 							inst = new Tone.MembraneSynth().toDestination();
 							break;
@@ -102,43 +130,39 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 							inst = new Tone.Synth().toDestination();
 					}
 					// record transient synth for disposal
-					synthsRef.current[name] = inst as
+					synthsRef.current[instr] = inst as
 						| Tone.Synth
 						| Tone.NoiseSynth
 						| Tone.MembraneSynth
 						| Tone.MetalSynth;
 				}
 
-				// build part events and schedule
-				const hits = pattern.tracks[name] || [];
-				const events = hits.map((pos) => [positionToToneTime(pos), pos]);
-
-				const part = new Tone.Part(
-					(time) => {
-						try {
-							if ((inst as Tone.Player) instanceof Tone.Player) {
-								(inst as Tone.Player).start(time);
-							} else if (name === "snare") {
-								(inst as Tone.NoiseSynth).triggerAttackRelease("16n", time);
-							} else if (name === "hat") {
-								(inst as Tone.MetalSynth).triggerAttackRelease("32n", time);
-							} else if (name === "kick") {
-								(inst as Tone.MembraneSynth).triggerAttackRelease(
-									"C1",
-									"8n",
-									time,
-								);
-							} else if (name === "bass") {
-								(inst as Tone.Synth).triggerAttackRelease("C2", "8n", time);
-							} else {
-								(inst as Tone.Synth).triggerAttackRelease("C3", "8n", time);
-							}
-						} catch {
-							// ignore
-						}
-					},
-					events as unknown as Array<[string, number]>,
+				const events = positions.map(
+					(pos) => [positionToToneTime(pos), pos] as [string, number],
 				);
+				const part = new Tone.Part((time) => {
+					try {
+						if ((inst as Tone.Player) instanceof Tone.Player) {
+							(inst as Tone.Player).start(time);
+						} else if (instr === "snare") {
+							(inst as Tone.NoiseSynth).triggerAttackRelease("16n", time);
+						} else if (instr === "hat") {
+							(inst as Tone.MetalSynth).triggerAttackRelease("32n", time);
+						} else if (instr === "kick") {
+							(inst as Tone.MembraneSynth).triggerAttackRelease(
+								"C1",
+								"8n",
+								time,
+							);
+						} else if (instr === "bass") {
+							(inst as Tone.Synth).triggerAttackRelease("C2", "8n", time);
+						} else {
+							(inst as Tone.Synth).triggerAttackRelease("C3", "8n", time);
+						}
+					} catch {
+						// ignore
+					}
+				}, events);
 
 				part.start(0);
 				partsRef.current.push(part);
@@ -171,64 +195,8 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 		// run setup but don't block cleanup
 		void setup();
 
-		// create instruments per track
-		Object.keys(pattern.tracks).forEach((name) => {
-			let inst:
-				| Tone.Synth
-				| Tone.NoiseSynth
-				| Tone.MembraneSynth
-				| Tone.MetalSynth
-				| Tone.Player;
-			switch (name) {
-				case "kick":
-					// prefer sample player if a kick sample exists in public/drums/kicks
-					inst = new Tone.Player(`/drums/kicks/LA_Kick01.wav`).toDestination();
-					break;
-				case "snare":
-					inst = new Tone.Player(
-						`/drums/claps-snares/LA_Snare01.wav`,
-					).toDestination();
-					break;
-				case "hat":
-					inst = new Tone.Player(`/drums/hats/LA_Hat01.wav`).toDestination();
-					break;
-				case "bass":
-					inst = new Tone.Synth().toDestination();
-					break;
-				default:
-					inst = new Tone.Synth().toDestination();
-			}
-			synthsRef.current[name] = inst;
-
-			const hits = pattern.tracks[name] || [];
-			// build part events: time string and the hit position value
-			const events = hits.map((pos) => [positionToToneTime(pos), pos]);
-
-			const part = new Tone.Part(
-				(time) => {
-					try {
-						if (name === "snare") {
-							// NoiseSynth uses triggerAttackRelease with duration
-							inst.triggerAttackRelease("16n", time);
-						} else if (name === "hat") {
-							inst.triggerAttackRelease("32n", time);
-						} else if (name === "kick") {
-							inst.triggerAttackRelease("C1", "8n", time);
-						} else if (name === "bass") {
-							inst.triggerAttackRelease("C2", "8n", time);
-						} else {
-							inst.triggerAttackRelease("C3", "8n", time);
-						}
-					} catch {
-						// ignore scheduling errors in the hook
-					}
-				},
-				events as unknown as Array<[string, number]>,
-			);
-
-			part.start(0);
-			partsRef.current.push(part);
-		});
+		// previous per-track scheduling removed — scheduling is handled by the async setup above which
+		// aggregates instrument events across all track blocks.
 
 		// set tempo and looping
 		Tone.Transport.bpm.value = pattern.bpm;
