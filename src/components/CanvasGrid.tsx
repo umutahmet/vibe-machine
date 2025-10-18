@@ -28,6 +28,17 @@ export default function CanvasGrid({
 	const ref = useRef<HTMLCanvasElement | null>(null);
 	const [playhead, setPlayhead] = useState(0);
 
+	// Refs used for smooth interpolation of the playhead between transport updates
+	const lastSecondsRef = useRef<number>(Tone.Transport.seconds || 0);
+	const lastBeatRef = useRef<number>(0);
+	const lastBpmRef = useRef<number>(
+		Tone.Transport.bpm?.value || pattern.bpm || 120,
+	);
+
+	// Smoothed playhead used for rendering to make motion buttery.
+	const smoothedPlayheadRef = useRef<number>(0);
+	const SMOOTHING_ALPHA = 0.12; // exponential smoothing factor (0..1)
+
 	// Memoized derived values to avoid recalculation on every render
 	const tracks = useMemo(() => Object.keys(pattern.tracks), [pattern.tracks]);
 	const steps = useMemo(() => pattern.bars * 16, [pattern.bars]);
@@ -46,37 +57,112 @@ export default function CanvasGrid({
 	useEffect(() => {
 		let raf = 0;
 
-		const parsePositionToBeats = (pos: string) => {
-			// Tone.Transport.position has form "bars:quarters:sixteenths".
-			// Convert to absolute quarter-note beats.
-			// Example: "1:2:3" -> bars * 4 + quarters + sixteenths / 4
-			const parts = pos.split(":").map((p) => parseInt(p, 10) || 0);
-			const [bars = 0, quarters = 0, sixteenths = 0] = parts;
-			return bars * 4 + quarters + sixteenths / 4;
-		};
-
 		const tick = () => {
 			try {
-				const pos = Tone.Transport.position as string;
-				let beats = parsePositionToBeats(pos);
+				const currentSeconds = Tone.Transport.seconds;
+				const currentBpm = Tone.Transport.bpm?.value || pattern.bpm;
 
-				// If looping is enabled, wrap the beats into the loop range so the
-				// visual playhead doesn't transiently render past the loop end.
-				// pattern.loop.start/end are in bars; convert to beats.
+				// If BPM changed since last frame, rebase our interpolation to the
+				// exact Transport.position to avoid jumps.
+				if (currentBpm !== lastBpmRef.current) {
+					lastBpmRef.current = currentBpm;
+					lastSecondsRef.current = currentSeconds;
+					// rebase lastBeat from transport seconds (high-resolution) so we
+					// don't snap to coarse Transport.position formats.
+					lastBeatRef.current = currentSeconds * (currentBpm / 60);
+					if (pattern.loop?.enabled) {
+						const loopStartBeats = (pattern.loop.start || 0) * 4;
+						const loopEndBeats = (pattern.loop.end || pattern.bars) * 4;
+						const loopLength = Math.max(0, loopEndBeats - loopStartBeats);
+						if (loopLength > 0) {
+							let rel = lastBeatRef.current - loopStartBeats;
+							rel = ((rel % loopLength) + loopLength) % loopLength;
+							lastBeatRef.current = loopStartBeats + rel;
+						}
+					}
+				}
+
+				// Compute interpolated beats since last baseline using last known BPM
+				const deltaSeconds = currentSeconds - lastSecondsRef.current;
+				let interpBeats =
+					lastBeatRef.current + deltaSeconds * (lastBpmRef.current / 60);
+
+				// Occasionally correct drift: if transport.position differs from our
+				// interpolated value by more than a small threshold, rebase to avoid
+				// long-term drift (e.g. due to audio timing adjustments).
+				// Use high-resolution seconds-based position for drift correction.
+				const actualPosBeats = Tone.Transport.seconds * (currentBpm / 60);
+				// apply same loop wrapping to the actual position
+				let actualWrapped = actualPosBeats;
 				if (pattern.loop?.enabled) {
 					const loopStartBeats = (pattern.loop.start || 0) * 4;
 					const loopEndBeats = (pattern.loop.end || pattern.bars) * 4;
 					const loopLength = Math.max(0, loopEndBeats - loopStartBeats);
 					if (loopLength > 0) {
-						// Normalize beats relative to loop start, then mod by loop length
-						let rel = beats - loopStartBeats;
-						// Use positive modulo
+						let rel = actualWrapped - loopStartBeats;
 						rel = ((rel % loopLength) + loopLength) % loopLength;
-						beats = loopStartBeats + rel;
+						actualWrapped = loopStartBeats + rel;
 					}
 				}
 
-				setPlayhead(beats);
+				const drift = Math.abs(interpBeats - actualWrapped);
+				if (drift > 0.25) {
+					// large drift -> rebase baseline
+					lastBeatRef.current = actualWrapped;
+					lastSecondsRef.current = currentSeconds;
+					interpBeats = actualWrapped;
+				}
+
+				// Update refs for next frame (but keep baseline unless rebased above)
+				// Do not update lastBeatRef here — it represents the baseline at
+				// lastSecondsRef. We update lastSecondsRef to current for continuous
+				// interpolation so deltaSeconds remains small.
+				lastSecondsRef.current = currentSeconds;
+
+				// Loop-aware smoothing: update smoothedPlayheadRef towards interpBeats
+				// taking the shortest path across loop boundaries when looping.
+				const applySmoothing = (target: number) => {
+					const current = smoothedPlayheadRef.current;
+					if (pattern.loop?.enabled) {
+						const loopStart = (pattern.loop.start || 0) * 4;
+						const loopEnd = (pattern.loop.end || pattern.bars) * 4;
+						const loopLen = Math.max(0, loopEnd - loopStart);
+						if (loopLen > 0) {
+							// Map both current and target to [0, loopLen)
+							const curRel =
+								(((current - loopStart) % loopLen) + loopLen) % loopLen;
+							const tgtRel =
+								(((target - loopStart) % loopLen) + loopLen) % loopLen;
+							// Compute shortest delta in wrapped space
+							let delta = tgtRel - curRel;
+							if (delta > loopLen / 2) delta -= loopLen;
+							if (delta < -loopLen / 2) delta += loopLen;
+							const newRel = curRel + delta * SMOOTHING_ALPHA;
+							smoothedPlayheadRef.current =
+								loopStart + (((newRel % loopLen) + loopLen) % loopLen);
+							return;
+						}
+					}
+
+					// Non-looping smoothing: simple exponential smoothing
+					smoothedPlayheadRef.current =
+						current + (target - current) * SMOOTHING_ALPHA;
+				};
+
+				// If transport is playing, apply smoothing only on the x-axis movement.
+				// When not playing (stopped/paused), snap the playhead to the transport
+				// to avoid enter/exit animations.
+				const isPlaying = Tone.Transport.state === "started";
+				if (isPlaying) {
+					applySmoothing(interpBeats);
+					setPlayhead(smoothedPlayheadRef.current);
+				} else {
+					// snap to actual wrapped position and rebase interpolation baseline
+					smoothedPlayheadRef.current = actualWrapped;
+					lastBeatRef.current = actualWrapped;
+					lastSecondsRef.current = currentSeconds;
+					setPlayhead(actualWrapped);
+				}
 			} catch {
 				// fallback: keep previous playhead
 			}
@@ -92,6 +178,7 @@ export default function CanvasGrid({
 		pattern.loop?.enabled,
 		pattern.loop?.start,
 		pattern.loop?.end,
+		pattern.bpm,
 	]);
 
 	// Main rendering effect: draw the grid, ruler, and hits
