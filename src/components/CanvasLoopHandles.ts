@@ -21,8 +21,12 @@ export function getLoopHandleAtPosition(
 }
 
 export function computeBarFromX(x: number, canvasWidth: number, bars: number) {
-	const raw = Math.floor((x / canvasWidth) * bars);
-	return Math.max(0, Math.min(raw, bars));
+	// Compute fractional bar position based on canvas X and snap to 1/16th of a bar
+	// (one sixteenth note per bar = 16 divisions per bar since 1 bar = 4/4 = 16 sixteenths)
+	if (canvasWidth <= 0) return 0;
+	const raw = (x / canvasWidth) * bars;
+	const snapped = Math.round(raw * 16) / 16; // snap to nearest sixteenth of a bar
+	return Math.max(0, Math.min(snapped, bars));
 }
 
 export default { getLoopHandleAtPosition, computeBarFromX };

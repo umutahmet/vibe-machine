@@ -112,6 +112,35 @@ export function useCanvasInteractions(
 			}
 		};
 
+		// While dragging, support live updates for loop handles
+		const handlePointerMoveWindow = (ev: PointerEvent) => {
+			if (!canvas) return;
+			if (!dragState.current) return;
+			const ds = dragState.current;
+			if (!("type" in ds)) return; // only care about loop drags here
+			const rect = canvas.getBoundingClientRect();
+			const x = ev.clientX - rect.left;
+			const cssWidth = rect.width || canvas.clientWidth || 0;
+			const clampedBar = computeBarFromX(x, cssWidth, pattern.bars);
+			const currentLoop = pattern.loop ?? {
+				enabled: false,
+				start: 0,
+				end: pattern.bars,
+			};
+			const nextLoop = { ...currentLoop };
+			if (ds.type === "loop-start") {
+				// ensure start < end - minimum 1 sixteenth (1/16th of a bar)
+				const minDelta = 1 / 16;
+				const maxStart = Math.max(0, currentLoop.end - minDelta);
+				nextLoop.start = Math.max(0, Math.min(clampedBar, maxStart));
+			} else if (ds.type === "loop-end") {
+				const minDelta = 1 / 16;
+				const minEnd = Math.min(pattern.bars, currentLoop.start + minDelta);
+				nextLoop.end = Math.max(minEnd, Math.min(clampedBar, pattern.bars));
+			}
+			onSetLoop?.(nextLoop);
+		};
+
 		const handlePointerUp = (ev: PointerEvent) => {
 			if (!canvas) return;
 			const rect = canvas.getBoundingClientRect();
@@ -145,11 +174,14 @@ export function useCanvasInteractions(
 
 		canvas.addEventListener("pointerdown", handlePointerDown);
 		window.addEventListener("pointermove", handlePointerMove);
+		// live loop handle dragging
+		window.addEventListener("pointermove", handlePointerMoveWindow);
 		window.addEventListener("pointerup", handlePointerUp);
 
 		return () => {
 			canvas.removeEventListener("pointerdown", handlePointerDown);
 			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointermove", handlePointerMoveWindow);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
 	}, [
