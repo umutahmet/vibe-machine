@@ -7,11 +7,15 @@ import TransportControls from "./components/TransportControls";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import { usePatternState } from "./hooks/usePatternState";
 import { useToneEngine } from "./hooks/useToneEngine";
+import { useTool } from "./hooks/useTool";
 import { parseCommand } from "./lib/patternParser";
 import shortcuts, { normalizeKey } from "./lib/shortcuts";
+import ToolName from "./lib/tools";
 
 function App() {
-	const { pattern, setBPM, setPattern, setLoop } = usePatternState();
+	const { pattern, setBPM, setPattern, setLoop, addHit, removeHit } =
+		usePatternState();
+	const { tool, setTool } = useTool(ToolName.Arrow);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const trackNames = Object.keys(pattern.tracks);
 	const totalSteps = pattern.bars * 16;
@@ -84,6 +88,15 @@ function App() {
 			e.preventDefault();
 			chatRef.current?.focus();
 		},
+		// switch tools: 1=arrow, 2=pencil
+		"1": (e) => {
+			e.preventDefault();
+			setTool(ToolName.Arrow);
+		},
+		"2": (e) => {
+			e.preventDefault();
+			setTool(ToolName.Pencil);
+		},
 	});
 
 	return (
@@ -152,7 +165,40 @@ function App() {
 					</div>
 
 					<div className="canvas-wrap">
-						<CanvasGrid pattern={pattern} />
+						<div
+							style={{
+								display: "flex",
+								gap: 8,
+								alignItems: "center",
+								marginBottom: 8,
+							}}
+						>
+							<button
+								type="button"
+								onClick={() => setTool(ToolName.Arrow)}
+								data-state={ToolName.Arrow}
+							>
+								Arrow (1)
+							</button>
+							<button
+								type="button"
+								onClick={() => setTool(ToolName.Pencil)}
+								data-state={ToolName.Pencil}
+							>
+								Pencil (2)
+							</button>
+						</div>
+						<CanvasGrid
+							pattern={pattern}
+							tool={tool}
+							onAddHit={(track, pos) => addHit(track, pos)}
+							onRemoveHit={(track, pos) => removeHit(track, pos)}
+							onMoveHit={(track, from, to) => {
+								// naive implementation: remove old and add new (positions in quarter notes)
+								removeHit(track, from);
+								addHit(track, to);
+							}}
+						/>
 					</div>
 				</section>
 			</main>

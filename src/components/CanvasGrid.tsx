@@ -2,11 +2,32 @@ import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
 import type { Pattern } from "../types";
 
-type Props = { pattern: Pattern };
+type Tool = "arrow" | "pencil";
 
-export default function CanvasGrid({ pattern }: Props) {
+type GridProps = {
+	pattern: Pattern;
+	tool?: Tool;
+	onAddHit?: (track: string, position: number) => void;
+	onRemoveHit?: (track: string, position: number) => void;
+	onMoveHit?: (track: string, from: number, to: number) => void;
+};
+
+export default function CanvasGrid({
+	pattern,
+	tool = "arrow",
+	onAddHit,
+	onRemoveHit,
+	onMoveHit,
+}: GridProps) {
 	const ref = useRef<HTMLCanvasElement | null>(null);
 	const [playhead, setPlayhead] = useState(0);
+
+	// interaction state
+	const dragState = useRef<{
+		track: string;
+		original: number;
+		index?: number;
+	} | null>(null);
 
 	// RAF loop to sync playhead with Tone.Transport
 	useEffect(() => {
@@ -158,6 +179,120 @@ export default function CanvasGrid({ pattern }: Props) {
 		// const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
 		// ctx.fillRect(px, 0, 2, height);
 	}, [pattern, playhead]);
+
+	useEffect(() => {
+		const canvas = ref.current;
+		if (!canvas) return;
+		const steps = pattern.bars * 16;
+		const handlePointerDown = (ev: PointerEvent) => {
+			if (!canvas) return;
+			const rect = canvas.getBoundingClientRect();
+			const x = ev.clientX - rect.left;
+			const y = ev.clientY - rect.top;
+			const stepIndex = Math.floor((x / canvas.width) * steps);
+			const trackIndex = Math.floor(
+				(y / canvas.height) * Object.keys(pattern.tracks).length,
+			);
+			const track =
+				Object.keys(pattern.tracks)[trackIndex] ??
+				Object.keys(pattern.tracks)[0];
+			if (tool === "pencil") {
+				// toggle hit at this step (in quarter-note beats)
+				const quarterPos = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
+				// detect existing hit near the step
+				let found: { pos: number } | null = null;
+				const tr = pattern.tracks[track];
+				if (tr) {
+					tr.blocks.forEach((b) => {
+						const blockStartQ = b.start * 4;
+						if (Array.isArray(b.hits)) {
+							(b.hits as number[]).forEach((rel) => {
+								const abs = blockStartQ + rel;
+								const absStep = Math.floor(abs * 4);
+								if (Math.abs(absStep - stepIndex) <= 1) {
+									found = { pos: abs };
+								}
+							});
+						} else if (b.hits && typeof b.hits === "object") {
+							Object.values(b.hits as Record<string, number[]>).forEach(
+								(arr) => {
+									(arr || []).forEach((rel) => {
+										const abs = blockStartQ + rel;
+										const absStep = Math.floor(abs * 4);
+										if (Math.abs(absStep - stepIndex) <= 1) {
+											found = { pos: abs };
+										}
+									});
+								},
+							);
+						}
+					});
+				}
+				if (found) {
+					onRemoveHit?.(track, found.pos);
+				} else {
+					onAddHit?.(track, quarterPos);
+				}
+			} else if (tool === "arrow") {
+				// try to find a hit near this step and start drag
+				const tr = pattern.tracks[track];
+				if (!tr) return;
+				let found: { idx: number; pos: number } | null = null;
+				tr.blocks.forEach((b) => {
+					const blockStartQ = b.start * 4;
+					if (Array.isArray(b.hits)) {
+						(b.hits as number[]).forEach((rel) => {
+							const abs = blockStartQ + rel;
+							const absStep = Math.floor(abs * 4);
+							if (Math.abs(absStep - stepIndex) <= 1) {
+								found = { idx: absStep, pos: abs };
+							}
+						});
+					} else if (b.hits && typeof b.hits === "object") {
+						Object.values(b.hits as Record<string, number[]>).forEach((arr) => {
+							(arr || []).forEach((rel) => {
+								const abs = blockStartQ + rel;
+								const absStep = Math.floor(abs * 4);
+								if (Math.abs(absStep - stepIndex) <= 1) {
+									found = { idx: absStep, pos: abs };
+								}
+							});
+						});
+					}
+				});
+				if (found) {
+					dragState.current = { track, original: found.pos, index: found.idx };
+					canvas.setPointerCapture(ev.pointerId);
+				}
+			}
+		};
+
+		const handlePointerMove = () => {
+			// no-op for now; kept for future visual feedback
+		};
+
+		const handlePointerUp = (ev: PointerEvent) => {
+			if (!dragState.current || !canvas) return;
+			const rect = canvas.getBoundingClientRect();
+			const x = ev.clientX - rect.left;
+			const stepIndex = Math.floor((x / canvas.width) * steps);
+			const toQuarter = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
+			const ds = dragState.current;
+			dragState.current = null;
+			canvas.releasePointerCapture(ev.pointerId);
+			onMoveHit?.(ds.track, ds.original, toQuarter);
+		};
+
+		canvas.addEventListener("pointerdown", handlePointerDown);
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp);
+
+		return () => {
+			canvas.removeEventListener("pointerdown", handlePointerDown);
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+	}, [pattern, tool, onAddHit, onRemoveHit, onMoveHit]);
 
 	return <canvas ref={ref} className="vibe-canvas" />;
 }
