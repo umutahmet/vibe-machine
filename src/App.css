@@ -185,7 +185,7 @@
 	background: radial-gradient(circle at 50% 0%, rgba(58, 132, 255, 0.08), transparent 65%),
 		linear-gradient(180deg, rgba(12, 18, 28, 0.85), rgba(6, 9, 15, 0.9));
 	border: 1px solid rgba(76, 97, 144, 0.2);
-	border-radius: 16px;
+	border-radius: 0;
 	display: block;
 }
 

@@ -47,10 +47,10 @@ export default function TransportControls({
 				type="button"
 				onClick={onPlayToggle}
 				className="transport-toggle"
-				data-state={isPlaying ? "playing" : "stopped"}
+				data-state={isPlaying ? "playing" : "paused"}
 			>
 				<span className="toggle-icon" aria-hidden />
-				<span className="toggle-label">{isPlaying ? "Stop" : "Play"}</span>
+				<span className="toggle-label">{isPlaying ? "Pause" : "Play"}</span>
 			</button>
 
 			<label className="tempo-cluster">

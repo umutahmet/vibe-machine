@@ -88,10 +88,10 @@ export default function CanvasGrid({
 
 		ctx.restore(); // end translate
 
-		// playhead (optional, since we have highlight)
-		// ctx.fillStyle = "#ff0000";
-		// const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
-		// ctx.fillRect(px, 0, 2, height);
+		// Draw playhead line
+		ctx.fillStyle = "#ff0000";
+		const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
+		ctx.fillRect(px, 0, 2, canvas.height);
 	}, [pattern, playhead, tracks, steps, gridHeight]);
 
 	// Handle user interactions (pointer events) via custom hook
