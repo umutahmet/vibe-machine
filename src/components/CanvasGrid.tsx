@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
+import type { Tool } from "../lib/tools";
 import type { Pattern } from "../types";
-
-type Tool = "arrow" | "pencil";
+import { drawGridBody } from "./CanvasGridBody";
+import { drawHits } from "./CanvasHits";
+import { computeBarFromX, getLoopHandleAtPosition } from "./CanvasLoopHandles";
+import { drawRuler } from "./CanvasRuler";
+import { handleArrowTool, handlePencilTool } from "./CanvasTools";
 
 type GridProps = {
 	pattern: Pattern;
@@ -71,154 +75,26 @@ export default function CanvasGrid({
 		const steps = pattern.bars * 16;
 
 		// draw ruler
-		ctx.fillStyle = "rgba(30, 30, 30, 0.9)";
-		ctx.fillRect(0, 0, width, rulerHeight);
-		ctx.strokeStyle = "rgba(100, 100, 100, 0.5)";
-		ctx.lineWidth = 1;
-		for (let bar = 0; bar <= pattern.bars; bar++) {
-			const x = (bar / pattern.bars) * width;
-			ctx.beginPath();
-			ctx.moveTo(x, 0);
-			ctx.lineTo(x, rulerHeight);
-			ctx.stroke();
-			if (bar < pattern.bars) {
-				ctx.fillStyle = "rgba(200, 200, 200, 0.8)";
-				ctx.font = "12px monospace";
-				ctx.fillText(`${bar + 1}`, x + 2, 15);
-			}
-		}
-
-		// highlight current bar
-		const currentBar = Math.floor(playhead / 4) % pattern.bars;
-		const barX = (currentBar / pattern.bars) * width;
-		const barWidth = (1 / pattern.bars) * width;
-		ctx.fillStyle = "rgba(58, 132, 255, 0.2)";
-		ctx.fillRect(barX, 0, barWidth, rulerHeight);
+		drawRuler(ctx, width, playhead, pattern);
 
 		// draw grid below ruler
 		const gridY = rulerHeight;
 		ctx.save();
 		ctx.translate(0, gridY);
 
-		// highlight current beat
-		const currentStep = Math.floor(playhead * 4) % steps;
-		const stepWidth = width / steps;
-		ctx.fillStyle = "rgba(58, 132, 255, 0.12)";
-		ctx.fillRect(currentStep * stepWidth, 0, stepWidth, gridHeight);
+		drawGridBody(
+			ctx,
+			width,
+			gridHeight,
+			trackHeight,
+			tracks,
+			pattern,
+			playhead,
+			steps,
+		);
 
-		// draw grid
-		ctx.strokeStyle = "rgba(92, 124, 180, 0.28)";
-		ctx.lineWidth = 0.5;
-		for (let i = 0; i <= steps; i++) {
-			const x = (i / steps) * width;
-			ctx.beginPath();
-			ctx.moveTo(x, 0);
-			ctx.lineTo(x, gridHeight);
-			ctx.stroke();
-		}
-
-		// draw track separators
-		ctx.strokeStyle = "rgba(45, 64, 104, 0.5)";
-		for (let i = 0; i <= tracks.length; i++) {
-			const y = i * trackHeight;
-			ctx.beginPath();
-			ctx.moveTo(0, y);
-			ctx.lineTo(width, y);
-			ctx.stroke();
-		}
-
-		// draw loop region (under hits)
-		if (pattern.loop?.enabled) {
-			const loopStartBar = pattern.loop.start;
-			const loopEndBar = pattern.loop.end;
-			const totalBars = pattern.bars;
-			// clamp
-			const s = Math.max(0, Math.min(loopStartBar, totalBars - 1));
-			const e = Math.max(s + 1, Math.min(loopEndBar, totalBars));
-			const loopStartX = (s / totalBars) * width;
-			const loopWidth = ((e - s) / totalBars) * width;
-
-			ctx.save();
-			ctx.fillStyle = "rgba(58, 132, 255, 0.06)"; // subtle blue tint
-			ctx.fillRect(loopStartX, 0, loopWidth, gridHeight);
-			ctx.strokeStyle = "rgba(58, 132, 255, 0.12)";
-			ctx.lineWidth = 1;
-			ctx.strokeRect(loopStartX + 0.5, 0.5, loopWidth - 1, gridHeight - 1);
-
-			// draw handles
-			ctx.fillStyle = "rgba(58, 132, 255, 0.8)";
-			ctx.fillRect(loopStartX - 2, -5, 4, 10); // start handle above grid
-			ctx.fillRect(loopStartX + loopWidth - 2, -5, 4, 10); // end handle
-			ctx.restore();
-		}
-
-		// draw block outlines (subtle) so pattern blocks are visible per track
-		tracks.forEach((t, yi) => {
-			const track = pattern.tracks[t];
-			if (!track || !Array.isArray(track.blocks)) return;
-			track.blocks.forEach((b) => {
-				const totalBars = pattern.bars;
-				const startBar = Math.max(0, Math.min(b.start, totalBars));
-				const endBar = Math.max(
-					startBar + 0.001,
-					Math.min(b.start + (b.bars || 1), totalBars),
-				);
-				const blockStartX = (startBar / totalBars) * width;
-				const blockW = ((endBar - startBar) / totalBars) * width;
-				const y = yi * trackHeight;
-				const bh = trackHeight - 6;
-
-				ctx.save();
-				ctx.fillStyle = "rgba(47, 226, 255, 0.04)"; // very subtle fill
-				ctx.fillRect(blockStartX + 1, y + 3, Math.max(2, blockW - 2), bh);
-				ctx.strokeStyle = "rgba(47, 226, 255, 0.08)";
-				ctx.lineWidth = 1;
-				ctx.strokeRect(
-					blockStartX + 1.5,
-					y + 3.5,
-					Math.max(1, blockW - 3),
-					bh - 1,
-				);
-				ctx.restore();
-			});
-		});
-
-		// draw hits from blocks (support both legacy array and new instrument->positions map)
-		tracks.forEach((t, yi) => {
-			const track = pattern.tracks[t];
-			if (!track || !Array.isArray(track.blocks)) return;
-			track.blocks.forEach((b) => {
-				const blockStartQ = b.start * 4; // quarter-note beats at block start
-				const y = yi * trackHeight;
-				const rectHeight = trackHeight - 4;
-				const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
-
-				// new format: hits is an object mapping instrument->positions
-				if (b.hits && typeof b.hits === "object" && !Array.isArray(b.hits)) {
-					Object.values(b.hits as Record<string, number[]>).forEach((arr) => {
-						(arr || []).forEach((rel) => {
-							const abs = blockStartQ + rel; // absolute quarter-note beat position
-							const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
-							const x = (stepIndex / steps) * width;
-							ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
-							ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
-							ctx.shadowBlur = 12;
-							ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
-						});
-					});
-				} else if (Array.isArray(b.hits)) {
-					(b.hits as number[]).forEach((rel) => {
-						const abs = blockStartQ + rel; // absolute quarter-note beat position
-						const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
-						const x = (stepIndex / steps) * width;
-						ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
-						ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
-						ctx.shadowBlur = 12;
-						ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
-					});
-				}
-			});
-		});
+		// draw hits and blocks
+		drawHits(ctx, width, steps, tracks, trackHeight, pattern);
 
 		ctx.restore(); // end translate
 
@@ -250,19 +126,12 @@ export default function CanvasGrid({
 
 			// check for loop handle drag
 			if (pattern.loop?.enabled && y >= -5 && y <= rulerHeight + 5) {
-				const loopStartBar = pattern.loop.start;
-				const loopEndBar = pattern.loop.end;
-				const totalBars = pattern.bars;
-				const s = Math.max(0, Math.min(loopStartBar, totalBars - 1));
-				const e = Math.max(s + 1, Math.min(loopEndBar, totalBars));
-				const loopStartX = (s / totalBars) * canvas.width;
-				const loopEndX = (e / totalBars) * canvas.width;
-				if (Math.abs(x - loopStartX) < 10) {
-					dragState.current = { type: "loop-start", original: s };
-					canvas.setPointerCapture(ev.pointerId);
-					return;
-				} else if (Math.abs(x - loopEndX) < 10) {
-					dragState.current = { type: "loop-end", original: e };
+				const handle = getLoopHandleAtPosition(x, canvas.width, pattern);
+				if (handle) {
+					dragState.current = {
+						type: handle,
+						original: pattern.loop[handle === "loop-start" ? "start" : "end"],
+					};
 					canvas.setPointerCapture(ev.pointerId);
 					return;
 				}
@@ -270,73 +139,9 @@ export default function CanvasGrid({
 
 			if (!track) return;
 			if (tool === "pencil") {
-				// toggle hit at this step (in quarter-note beats)
-				const quarterPos = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
-				// detect existing hit near the step
-				let found: { pos: number } | null = null;
-				const tr = pattern.tracks[track];
-				if (tr) {
-					tr.blocks.forEach((b) => {
-						const blockStartQ = b.start * 4;
-						if (Array.isArray(b.hits)) {
-							(b.hits as number[]).forEach((rel) => {
-								const abs = blockStartQ + rel;
-								const absStep = Math.floor(abs * 4);
-								if (Math.abs(absStep - stepIndex) <= 1) {
-									found = { pos: abs };
-								}
-							});
-						} else if (b.hits && typeof b.hits === "object") {
-							Object.values(b.hits as Record<string, number[]>).forEach(
-								(arr) => {
-									(arr || []).forEach((rel) => {
-										const abs = blockStartQ + rel;
-										const absStep = Math.floor(abs * 4);
-										if (Math.abs(absStep - stepIndex) <= 1) {
-											found = { pos: abs };
-										}
-									});
-								},
-							);
-						}
-					});
-				}
-				if (found) {
-					onRemoveHit?.(track, found.pos);
-				} else {
-					onAddHit?.(track, quarterPos);
-				}
+				handlePencilTool(pattern, track, stepIndex, onAddHit, onRemoveHit);
 			} else if (tool === "arrow") {
-				// try to find a hit near this step and start drag
-				const tr = pattern.tracks[track];
-				if (!tr) return;
-				let found: { idx: number; pos: number } | null = null;
-				tr.blocks.forEach((b) => {
-					const blockStartQ = b.start * 4;
-					if (Array.isArray(b.hits)) {
-						(b.hits as number[]).forEach((rel) => {
-							const abs = blockStartQ + rel;
-							const absStep = Math.floor(abs * 4);
-							if (Math.abs(absStep - stepIndex) <= 1) {
-								found = { idx: absStep, pos: abs };
-							}
-						});
-					} else if (b.hits && typeof b.hits === "object") {
-						Object.values(b.hits as Record<string, number[]>).forEach((arr) => {
-							(arr || []).forEach((rel) => {
-								const abs = blockStartQ + rel;
-								const absStep = Math.floor(abs * 4);
-								if (Math.abs(absStep - stepIndex) <= 1) {
-									found = { idx: absStep, pos: abs };
-								}
-							});
-						});
-					}
-				});
-				if (found) {
-					dragState.current = { track, original: found.pos, index: found.idx };
-					canvas.setPointerCapture(ev.pointerId);
-				}
+				handleArrowTool(pattern, track, stepIndex, dragState, canvas, ev);
 			}
 		};
 
@@ -353,8 +158,7 @@ export default function CanvasGrid({
 			canvas.releasePointerCapture(ev.pointerId);
 			if ("type" in ds) {
 				// loop drag
-				const bar = Math.floor((x / canvas.width) * pattern.bars);
-				const clampedBar = Math.max(0, Math.min(bar, pattern.bars));
+				const clampedBar = computeBarFromX(x, canvas.width, pattern.bars);
 				const currentLoop = pattern.loop ?? {
 					enabled: false,
 					start: 0,
