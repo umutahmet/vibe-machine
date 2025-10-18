@@ -49,6 +49,11 @@
 	--canvas-handle-fill: rgba(var(--accent-gold-rgb), 0.9);
 	--canvas-hit-fill: rgba(var(--accent-gold-rgb), 0.9);
 	--canvas-hit-shadow: rgba(var(--accent-pulse-rgb),0.25);
+
+	/* Canvas layout sizes (keep in sync with canvasConstants.ts)
+	   RULER_HEIGHT = 30, TRACK_HEIGHT = 25 */
+	--ruler-height: 30px;
+	--grid-lane-height: 25px;
 	/* Additional tokens for remaining UI paint */
 	--panel-border-rgb: 79,69,46;
 	--panel-border-2-rgb: 76,66,44;
@@ -101,18 +106,59 @@ button {
 	padding: 0;
 }
 
-.track-header {
+.grid-lane-header {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
-.track-title {
+.grid-lane-title {
 	font-size: 0.85em;
 	color: rgba(255, 255, 255, 0.9);
 }
 
-.track-name {
+.grid-lane-name {
 	font-size: 0.75em;
 	color: rgba(255, 255, 255, 0.6);
+}
+
+/* Canvas + track headers layout */
+.canvas-with-headers {
+	display: flex;
+	flex-direction: row;
+	gap: 12px;
+}
+
+.grid-lane-headers {
+	display: flex;
+	flex-direction: column;
+	background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.03));
+	border-right: 1px solid rgba(var(--muted-border-2-rgb), 0.12);
+	min-width: 100px;
+}
+
+.grid-lane-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 6px 10px;
+	gap: 8px;
+	border-bottom: 1px solid var(--canvas-separator);
+	background: transparent;
+}
+
+.grid-lane-number {
+	width: 28px;
+	height: 20px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: rgba(var(--muted-text-rgb), 0.9);
+	font-size: 0.85em;
+}
+
+.grid-lane-title {
+	font-size: 0.9em;
+	color: var(--text-offwhite);
+	text-transform: lowercase;
 }

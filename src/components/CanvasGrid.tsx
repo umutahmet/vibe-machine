@@ -204,5 +204,20 @@ export default function CanvasGrid({
 		onSetLoop,
 	);
 
-	return <canvas ref={ref} className="vibe-canvas" />;
+	// Render track headers aligned under the ruler and styled via CSS
+	return (
+		<div className="canvas-with-headers">
+			<div className="grid-lane-headers">
+				{tracks.map((trackName, idx) => (
+					<div className="grid-lane-item" key={trackName}>
+						<div className="grid-lane-number">{idx + 1}</div>
+						<div className="grid-lane-title">{trackName}</div>
+					</div>
+				))}
+			</div>
+			<div className="canvas-column">
+				<canvas ref={ref} className="vibe-canvas" />
+			</div>
+		</div>
+	);
 }

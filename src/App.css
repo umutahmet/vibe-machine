@@ -192,7 +192,7 @@
 	color: rgba(var(--muted-text-rgb), 0.5);
 }
 
-.track-list {
+.grid-lane-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -201,7 +201,7 @@
 	gap: 12px;
 }
 
-.track-pill {
+.grid-lane-pill {
 	display: flex;
 	align-items: center;
 	gap: 14px;
