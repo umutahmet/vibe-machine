@@ -5,7 +5,8 @@ import GridWindow from "./components/GridWindow";
 import ToolsWindow from "./components/ToolsWindow";
 import TracksWindow from "./components/TracksWindow";
 import TransportWindow from "./components/TransportWindow";
-import AppProvider, { useAppContext } from "./context/AppContext";
+import AppProvider from "./context/AppContext";
+import { useAppContext } from "./context/appContextCore";
 import type { WindowState } from "./types";
 
 function AppInner() {

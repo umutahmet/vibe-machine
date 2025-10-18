@@ -1,4 +1,4 @@
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/appContextCore";
 import ToolName from "../lib/tools";
 
 export default function ToolsWindow() {

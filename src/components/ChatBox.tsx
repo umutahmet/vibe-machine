@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, useRef, useState } from "react";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/appContextCore";
 
 type Props = {
 	onCommand?: (cmd: string) => void;

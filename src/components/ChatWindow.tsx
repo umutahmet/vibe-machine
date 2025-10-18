@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/appContextCore";
 import ChatBox from "./ChatBox";
 
 const ChatWindow = React.forwardRef(function ChatWindowForward() {

@@ -1,4 +1,4 @@
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/appContextCore";
 import CanvasGrid from "./CanvasGrid";
 
 export default function GridWindow() {
