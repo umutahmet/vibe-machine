@@ -184,11 +184,14 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 			if (isPlaying) {
 				// Ensure AudioContext is resumed/started and wait for players to load
 				await Tone.start();
-				if (!Tone.Transport.state || Tone.Transport.state === "stopped") {
+				if (
+					Tone.Transport.state === "stopped" ||
+					Tone.Transport.state === "paused"
+				) {
 					Tone.Transport.start();
 				}
 			} else {
-				Tone.Transport.stop();
+				Tone.Transport.pause();
 			}
 		};
 
@@ -214,12 +217,15 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 		if (isPlaying) {
 			// Ensure AudioContext is resumed/started
 			void Tone.start().then(() => {
-				if (!Tone.Transport.state || Tone.Transport.state === "stopped") {
+				if (
+					Tone.Transport.state === "stopped" ||
+					Tone.Transport.state === "paused"
+				) {
 					Tone.Transport.start();
 				}
 			});
 		} else {
-			Tone.Transport.stop();
+			Tone.Transport.pause();
 		}
 
 		return () => {
