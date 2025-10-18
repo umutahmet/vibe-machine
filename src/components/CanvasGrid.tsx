@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import * as Tone from "tone";
+import { useEffect, useMemo, useRef } from "react";
 import { useCanvasInteractions } from "../hooks/useCanvasInteractions";
+import { useSmoothedPlayhead } from "../hooks/useSmoothedPlayhead";
 import type { Tool } from "../lib/tools";
 import type { Pattern } from "../types";
-import { drawGridBody } from "./CanvasGridBody";
-import { drawHits } from "./CanvasHits";
-import { drawRuler } from "./CanvasRuler";
-import { getCanvasColors } from "./canvasConfig";
+// rendering delegated to ./canvasRenderer
+import { RULER_HEIGHT, TRACK_HEIGHT } from "./canvasConstants";
+import { renderCanvas } from "./canvasRenderer";
 
 type GridProps = {
 	pattern: Pattern;
@@ -26,27 +25,16 @@ export default function CanvasGrid({
 	onSetLoop,
 }: GridProps) {
 	const ref = useRef<HTMLCanvasElement | null>(null);
-	const [playhead, setPlayhead] = useState(0);
-
-	// Refs used for smooth interpolation of the playhead between transport updates
-	const lastSecondsRef = useRef<number>(Tone.Transport.seconds || 0);
-	const lastBeatRef = useRef<number>(0);
-	const lastBpmRef = useRef<number>(
-		Tone.Transport.bpm?.value || pattern.bpm || 120,
-	);
-
-	// Smoothed playhead used for rendering to make motion buttery.
-	const smoothedPlayheadRef = useRef<number>(0);
-	const SMOOTHING_ALPHA = 0.12; // exponential smoothing factor (0..1)
+	const playhead = useSmoothedPlayhead(pattern);
 
 	// Memoized derived values to avoid recalculation on every render
 	const tracks = useMemo(() => Object.keys(pattern.tracks), [pattern.tracks]);
 	const steps = useMemo(() => pattern.bars * 16, [pattern.bars]);
-	const rulerHeight = 30;
-	const trackHeight = 25;
+	const rulerHeight = RULER_HEIGHT;
+	const trackHeight = TRACK_HEIGHT;
 	const gridHeight = useMemo(
 		() => trackHeight * tracks.length,
-		[tracks.length],
+		[tracks.length, trackHeight],
 	);
 
 	// Sync playhead with Tone.Transport for real-time audio position.
@@ -189,44 +177,17 @@ export default function CanvasGrid({
 	useEffect(() => {
 		const canvas = ref.current;
 		if (!canvas) return;
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
-		canvas.width = canvas.clientWidth || 800;
-		const width = canvas.width;
-		canvas.height = rulerHeight + gridHeight;
-		canvas.style.height = `${canvas.height}px`;
-		ctx.clearRect(0, 0, width, canvas.height);
-
-		// draw ruler
-		drawRuler(ctx, width, playhead, pattern);
-
-		// draw grid below ruler
-		const gridY = rulerHeight;
-		ctx.save();
-		ctx.translate(0, gridY);
-
-		drawGridBody(
-			ctx,
-			width,
-			gridHeight,
-			trackHeight,
-			tracks,
+		renderCanvas(
+			canvas,
 			pattern,
 			playhead,
+			tracks,
 			steps,
+			gridHeight,
+			rulerHeight,
+			trackHeight,
 		);
-
-		// draw hits and blocks
-		drawHits(ctx, width, steps, tracks, trackHeight, pattern);
-
-		ctx.restore(); // end translate
-
-		// Draw playhead line
-		const COLORS = getCanvasColors();
-		ctx.fillStyle = COLORS.handleFill || `rgba(var(--accent-gold-rgb), 1)`;
-		const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
-		ctx.fillRect(px, 0, 2, canvas.height);
-	}, [pattern, playhead, tracks, steps, gridHeight]);
+	}, [pattern, playhead, tracks, steps, gridHeight, rulerHeight, trackHeight]);
 
 	// Handle user interactions (pointer events) via custom hook
 	useCanvasInteractions(
