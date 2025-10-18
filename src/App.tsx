@@ -198,6 +198,7 @@ function App() {
 								removeHit(track, from);
 								addHit(track, to);
 							}}
+							onSetLoop={setLoop}
 						/>
 					</div>
 				</section>

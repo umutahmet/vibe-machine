@@ -10,6 +10,7 @@ type GridProps = {
 	onAddHit?: (track: string, position: number) => void;
 	onRemoveHit?: (track: string, position: number) => void;
 	onMoveHit?: (track: string, from: number, to: number) => void;
+	onSetLoop?: (loop: { enabled: boolean; start: number; end: number }) => void;
 };
 
 export default function CanvasGrid({
@@ -18,16 +19,24 @@ export default function CanvasGrid({
 	onAddHit,
 	onRemoveHit,
 	onMoveHit,
+	onSetLoop,
 }: GridProps) {
 	const ref = useRef<HTMLCanvasElement | null>(null);
 	const [playhead, setPlayhead] = useState(0);
 
 	// interaction state
-	const dragState = useRef<{
-		track: string;
-		original: number;
-		index?: number;
-	} | null>(null);
+	const dragState = useRef<
+		| {
+				track: string;
+				original: number;
+				index?: number;
+		  }
+		| {
+				type: "loop-start" | "loop-end";
+				original: number;
+		  }
+		| null
+	>(null);
 
 	// RAF loop to sync playhead with Tone.Transport
 	useEffect(() => {
@@ -49,20 +58,53 @@ export default function CanvasGrid({
 		if (!canvas) return;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
+		const rulerHeight = 30;
+		const trackHeight = 25; // fixed lane height
+		const tracks = Object.keys(pattern.tracks);
+		const gridHeight = trackHeight * tracks.length;
 		canvas.width = canvas.clientWidth || 800;
 		const width = canvas.width;
-		canvas.height = 300;
-		const height = 100;
-		ctx.clearRect(0, 0, width, height);
+		canvas.height = rulerHeight + gridHeight;
+		canvas.style.height = canvas.height + "px";
+		ctx.clearRect(0, 0, width, canvas.height);
 
-		const tracks = Object.keys(pattern.tracks);
 		const steps = pattern.bars * 16;
+
+		// draw ruler
+		ctx.fillStyle = "rgba(30, 30, 30, 0.9)";
+		ctx.fillRect(0, 0, width, rulerHeight);
+		ctx.strokeStyle = "rgba(100, 100, 100, 0.5)";
+		ctx.lineWidth = 1;
+		for (let bar = 0; bar <= pattern.bars; bar++) {
+			const x = (bar / pattern.bars) * width;
+			ctx.beginPath();
+			ctx.moveTo(x, 0);
+			ctx.lineTo(x, rulerHeight);
+			ctx.stroke();
+			if (bar < pattern.bars) {
+				ctx.fillStyle = "rgba(200, 200, 200, 0.8)";
+				ctx.font = "12px monospace";
+				ctx.fillText(`${bar + 1}`, x + 2, 15);
+			}
+		}
+
+		// highlight current bar
+		const currentBar = Math.floor(playhead / 4) % pattern.bars;
+		const barX = (currentBar / pattern.bars) * width;
+		const barWidth = (1 / pattern.bars) * width;
+		ctx.fillStyle = "rgba(58, 132, 255, 0.2)";
+		ctx.fillRect(barX, 0, barWidth, rulerHeight);
+
+		// draw grid below ruler
+		const gridY = rulerHeight;
+		ctx.save();
+		ctx.translate(0, gridY);
 
 		// highlight current beat
 		const currentStep = Math.floor(playhead * 4) % steps;
 		const stepWidth = width / steps;
 		ctx.fillStyle = "rgba(58, 132, 255, 0.12)";
-		ctx.fillRect(currentStep * stepWidth, 0, stepWidth, height);
+		ctx.fillRect(currentStep * stepWidth, 0, stepWidth, gridHeight);
 
 		// draw grid
 		ctx.strokeStyle = "rgba(92, 124, 180, 0.28)";
@@ -71,15 +113,14 @@ export default function CanvasGrid({
 			const x = (i / steps) * width;
 			ctx.beginPath();
 			ctx.moveTo(x, 0);
-			ctx.lineTo(x, height);
+			ctx.lineTo(x, gridHeight);
 			ctx.stroke();
 		}
 
 		// draw track separators
-		const trackHeight = height / tracks.length;
 		ctx.strokeStyle = "rgba(45, 64, 104, 0.5)";
 		for (let i = 0; i <= tracks.length; i++) {
-			const y = (i / tracks.length) * height;
+			const y = i * trackHeight;
 			ctx.beginPath();
 			ctx.moveTo(0, y);
 			ctx.lineTo(width, y);
@@ -99,10 +140,15 @@ export default function CanvasGrid({
 
 			ctx.save();
 			ctx.fillStyle = "rgba(58, 132, 255, 0.06)"; // subtle blue tint
-			ctx.fillRect(loopStartX, 0, loopWidth, height);
+			ctx.fillRect(loopStartX, 0, loopWidth, gridHeight);
 			ctx.strokeStyle = "rgba(58, 132, 255, 0.12)";
 			ctx.lineWidth = 1;
-			ctx.strokeRect(loopStartX + 0.5, 0.5, loopWidth - 1, height - 1);
+			ctx.strokeRect(loopStartX + 0.5, 0.5, loopWidth - 1, gridHeight - 1);
+
+			// draw handles
+			ctx.fillStyle = "rgba(58, 132, 255, 0.8)";
+			ctx.fillRect(loopStartX - 2, -5, 4, 10); // start handle above grid
+			ctx.fillRect(loopStartX + loopWidth - 2, -5, 4, 10); // end handle
 			ctx.restore();
 		}
 
@@ -119,7 +165,7 @@ export default function CanvasGrid({
 				);
 				const blockStartX = (startBar / totalBars) * width;
 				const blockW = ((endBar - startBar) / totalBars) * width;
-				const y = (yi / tracks.length) * height;
+				const y = yi * trackHeight;
 				const bh = trackHeight - 6;
 
 				ctx.save();
@@ -143,7 +189,7 @@ export default function CanvasGrid({
 			if (!track || !Array.isArray(track.blocks)) return;
 			track.blocks.forEach((b) => {
 				const blockStartQ = b.start * 4; // quarter-note beats at block start
-				const y = (yi / tracks.length) * height;
+				const y = yi * trackHeight;
 				const rectHeight = trackHeight - 4;
 				const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
 
@@ -174,6 +220,8 @@ export default function CanvasGrid({
 			});
 		});
 
+		ctx.restore(); // end translate
+
 		// playhead (optional, since we have highlight)
 		// ctx.fillStyle = "#ff0000";
 		// const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
@@ -183,6 +231,9 @@ export default function CanvasGrid({
 	useEffect(() => {
 		const canvas = ref.current;
 		if (!canvas) return;
+		const rulerHeight = 30;
+		const trackHeight = 25; // fixed lane height
+		const tracks = Object.keys(pattern.tracks);
 		const steps = pattern.bars * 16;
 		const handlePointerDown = (ev: PointerEvent) => {
 			if (!canvas) return;
@@ -190,12 +241,34 @@ export default function CanvasGrid({
 			const x = ev.clientX - rect.left;
 			const y = ev.clientY - rect.top;
 			const stepIndex = Math.floor((x / canvas.width) * steps);
-			const trackIndex = Math.floor(
-				(y / canvas.height) * Object.keys(pattern.tracks).length,
-			);
+			const gridY = y - rulerHeight;
+			const trackIndex = gridY >= 0 ? Math.floor(gridY / trackHeight) : -1;
 			const track =
-				Object.keys(pattern.tracks)[trackIndex] ??
-				Object.keys(pattern.tracks)[0];
+				trackIndex >= 0 && trackIndex < tracks.length
+					? tracks[trackIndex]
+					: null;
+
+			// check for loop handle drag
+			if (pattern.loop?.enabled && y >= -5 && y <= rulerHeight + 5) {
+				const loopStartBar = pattern.loop.start;
+				const loopEndBar = pattern.loop.end;
+				const totalBars = pattern.bars;
+				const s = Math.max(0, Math.min(loopStartBar, totalBars - 1));
+				const e = Math.max(s + 1, Math.min(loopEndBar, totalBars));
+				const loopStartX = (s / totalBars) * canvas.width;
+				const loopEndX = (e / totalBars) * canvas.width;
+				if (Math.abs(x - loopStartX) < 10) {
+					dragState.current = { type: "loop-start", original: s };
+					canvas.setPointerCapture(ev.pointerId);
+					return;
+				} else if (Math.abs(x - loopEndX) < 10) {
+					dragState.current = { type: "loop-end", original: e };
+					canvas.setPointerCapture(ev.pointerId);
+					return;
+				}
+			}
+
+			if (!track) return;
 			if (tool === "pencil") {
 				// toggle hit at this step (in quarter-note beats)
 				const quarterPos = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
@@ -275,12 +348,29 @@ export default function CanvasGrid({
 			if (!dragState.current || !canvas) return;
 			const rect = canvas.getBoundingClientRect();
 			const x = ev.clientX - rect.left;
-			const stepIndex = Math.floor((x / canvas.width) * steps);
-			const toQuarter = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
 			const ds = dragState.current;
 			dragState.current = null;
 			canvas.releasePointerCapture(ev.pointerId);
-			onMoveHit?.(ds.track, ds.original, toQuarter);
+			if ("type" in ds) {
+				// loop drag
+				const bar = Math.floor((x / canvas.width) * pattern.bars);
+				const clampedBar = Math.max(0, Math.min(bar, pattern.bars));
+				const currentLoop = pattern.loop ?? {
+					enabled: false,
+					start: 0,
+					end: pattern.bars,
+				};
+				if (ds.type === "loop-start") {
+					onSetLoop?.({ ...currentLoop, start: clampedBar });
+				} else if (ds.type === "loop-end") {
+					onSetLoop?.({ ...currentLoop, end: clampedBar });
+				}
+			} else {
+				// hit drag
+				const stepIndex = Math.floor((x / canvas.width) * steps);
+				const toQuarter = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
+				onMoveHit?.(ds.track, ds.original, toQuarter);
+			}
 		};
 
 		canvas.addEventListener("pointerdown", handlePointerDown);
@@ -292,7 +382,7 @@ export default function CanvasGrid({
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerup", handlePointerUp);
 		};
-	}, [pattern, tool, onAddHit, onRemoveHit, onMoveHit]);
+	}, [pattern, tool, onAddHit, onRemoveHit, onMoveHit, onSetLoop]);
 
 	return <canvas ref={ref} className="vibe-canvas" />;
 }
