@@ -17,6 +17,7 @@
 }
 
 .floating-window {
+	position: absolute;
 	border: 1px solid var(--muted-border);
 	border-radius: 16px;
 	background: var(--surface-dark);
@@ -33,6 +34,7 @@
 	border-radius: 16px 16px 0 0;
 	font-size: 14px;
 	font-weight: bold;
+	cursor: move;
 }
 
 .window-title {
@@ -391,6 +393,23 @@
 	box-shadow: inset 0 1px 0 rgba(var(--inset-white-rgb), 0.04);
 }
 
+/* small utility classes for extracting inline styles */
+.tools-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.inline-cluster {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.small-number {
+	width: 60px;
+}
+
 .transport-toggle {
 	display: flex;
 	align-items: center;
@@ -478,7 +497,7 @@
 	-webkit-appearance: none;
 	width: 140px;
 	height: 4px;
-	background: rgba(40, 36, 34, 0.6);
+	background: rgba(255,255,255, 0.6);
 	border-radius: 999px;
 	outline: none;
 	position: relative;
@@ -515,7 +534,7 @@
 .tempo-slider::-moz-range-track {
 	height: 4px;
 	border-radius: 999px;
-	background: rgba(40, 36, 34, 0.6);
+	background: rgba(255,255,255, 0.6);
 }
 
 .tempo-value {
@@ -526,63 +545,28 @@
 	text-transform: uppercase;
 }
 
-@media (max-width: 1100px) {
-	.top-bar {
-		grid-template-columns: 1fr;
-		gap: 18px;
-		text-align: center;
-	}
-
-	.transport-dock {
-		justify-content: center;
-	}
-
-	.session-readout {
-		align-items: center;
-	}
-
-	.workspace {
-		grid-template-columns: 1fr;
-	}
-
-	.side-rail {
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		padding: 20px 24px;
-	}
-
-	.track-list {
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 10px;
-	}
-
-	.track-pill {
-		padding: 8px 14px;
-	}
+.tool {
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	background: rgba(20, 28, 40, 0.85);
+	border: 1px solid rgba(var(--muted-border-2-rgb), 0.25);
+	box-shadow: inset 0 1px 0 rgba(var(--inset-white-rgb), 0.05);
+	transition:
+		background 0.2s ease,
+		box-shadow 0.2s ease,
+		transform 0.1s ease;
 }
 
-@media (max-width: 720px) {
-	.canvas-wrap {
-		padding: 16px;
-	}
-
-	.vibe-canvas {
-		height: 280px;
-	}
-
-	.transport-row {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.tempo-cluster {
-		grid-template-columns: 1fr;
-		text-align: center;
-	}
-
-	.tempo-slider {
-		width: 100%;
-	}
-}
+.tool.active,
+.tool:hover {
+	background: linear-gradient(
+		135deg,
+		rgba(var(--accent-gold-rgb), 0.95),
+		rgba(var(--accent-soft-rgb), 0.85)
+	);
+	box-shadow: 0 8px 16px rgba(var(--accent-gold-rgb), 0.18);
+}	

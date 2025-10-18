@@ -67,7 +67,7 @@ export default function TransportControls({
 			</label>
 
 			{/* loop controls */}
-			<label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+			<label className="inline-cluster">
 				<input
 					type="checkbox"
 					checked={!!loop?.enabled}
@@ -76,7 +76,7 @@ export default function TransportControls({
 				Loop
 			</label>
 			{loop?.enabled ? (
-				<label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+				<label className="inline-cluster">
 					Start:
 					<input
 						type="number"
@@ -84,7 +84,7 @@ export default function TransportControls({
 						max={bars - 1}
 						value={loop?.start ?? 0}
 						onChange={(e) => updateLoopStart(Number(e.target.value))}
-						style={{ width: 60 }}
+						className="small-number"
 					/>
 					End:
 					<input
@@ -93,7 +93,7 @@ export default function TransportControls({
 						max={bars}
 						value={loop?.end ?? bars}
 						onChange={(e) => updateLoopEnd(Number(e.target.value))}
-						style={{ width: 60 }}
+						className="small-number"
 					/>
 				</label>
 			) : null}

@@ -31,7 +31,6 @@ export function FloatingWindow({
 		<div
 			className="floating-window"
 			style={{
-				position: "absolute",
 				left: window.position.x,
 				top: window.position.y,
 				width: window.size.width,
@@ -42,11 +41,7 @@ export function FloatingWindow({
 			onKeyDown={() => {}}
 		>
 			{/** biome-ignore lint/a11y/noStaticElementInteractions: 🤷‍♂️ */}
-			<div
-				className="window-title-bar"
-				onMouseDown={handleMouseDown}
-				style={{ cursor: "move" }}
-			>
+			<div className="window-title-bar" onMouseDown={handleMouseDown}>
 				<span className="window-title">{window.type}</span>
 				<button
 					type="button"
