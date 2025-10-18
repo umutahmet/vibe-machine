@@ -6,6 +6,8 @@ import type { Pattern, WindowState } from "../types";
 export type AppContextValue = {
 	pattern: Pattern;
 	setPattern: (p: Pattern) => void;
+	undo: () => void;
+	redo: () => void;
 	setBPM: (bpm: number) => void;
 	setLoop: (loop: { enabled: boolean; start: number; end: number }) => void;
 	addHit: (track: string, pos: number) => void;

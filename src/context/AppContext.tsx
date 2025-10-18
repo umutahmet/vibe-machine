@@ -14,8 +14,16 @@ import { AppContext, type AppContextValue } from "./appContextCore";
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
-	const { pattern, setBPM, setPattern, setLoop, addHit, removeHit } =
-		usePatternState();
+	const {
+		pattern,
+		setBPM,
+		setPattern,
+		setLoop,
+		addHit,
+		removeHit,
+		undo,
+		redo,
+	} = usePatternState();
 	const { tool, setTool } = useTool(ToolEnum.Arrow);
 	const [isPlaying, setIsPlaying] = React.useState(false);
 
@@ -44,6 +52,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		setPattern,
 		setTool,
 		focusChat: () => chatRef.current?.focus(),
+		undo,
+		redo,
 	});
 
 	useKeyboardShortcuts(shortcutsMap);
@@ -51,6 +61,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	const value: AppContextValue = {
 		pattern,
 		setPattern,
+		undo,
+		redo,
 		setBPM,
 		setLoop,
 		addHit,

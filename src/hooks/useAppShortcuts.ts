@@ -8,6 +8,8 @@ interface UseAppShortcutsProps {
 	setPattern: (fn: (prev: Pattern) => Pattern) => void;
 	setTool: (tool: ToolName) => void;
 	focusChat: () => void;
+	undo?: () => void;
+	redo?: () => void;
 }
 
 export function useAppShortcuts({
@@ -15,6 +17,8 @@ export function useAppShortcuts({
 	setPattern,
 	setTool,
 	focusChat,
+	undo,
+	redo,
 }: UseAppShortcutsProps) {
 	return {
 		[normalizeKey(shortcuts.playPause)]: (e: KeyboardEvent) => {
@@ -83,6 +87,24 @@ export function useAppShortcuts({
 		"2": (e: KeyboardEvent) => {
 			e.preventDefault();
 			setTool(ToolName.Pencil);
+		},
+		// undo / redo
+		[normalizeKey("z", { meta: true })]: (e: KeyboardEvent) => {
+			e.preventDefault();
+			undo?.();
+		},
+		[normalizeKey("z", { meta: true, shift: true })]: (e: KeyboardEvent) => {
+			e.preventDefault();
+			redo?.();
+		},
+		// also support ctrl for non-mac platforms
+		[normalizeKey("z", { ctrl: true })]: (e: KeyboardEvent) => {
+			e.preventDefault();
+			undo?.();
+		},
+		[normalizeKey("z", { ctrl: true, shift: true })]: (e: KeyboardEvent) => {
+			e.preventDefault();
+			redo?.();
 		},
 	};
 }
