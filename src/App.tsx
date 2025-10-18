@@ -8,7 +8,7 @@ import { useToneEngine } from "./hooks/useToneEngine";
 import { parseCommand } from "./lib/patternParser";
 
 function App() {
-	const { pattern, setBPM, setPattern } = usePatternState();
+	const { pattern, setBPM, setPattern, setLoop } = usePatternState();
 	const [isPlaying, setIsPlaying] = useState(false);
 	const trackNames = Object.keys(pattern.tracks);
 	const totalSteps = pattern.bars * 16;
@@ -38,6 +38,9 @@ function App() {
 						isPlaying={isPlaying}
 						onPlayToggle={() => setIsPlaying((s) => !s)}
 						onBpmChange={(b) => setBPM(b)}
+						bars={pattern.bars}
+						loop={pattern.loop}
+						setLoop={(l) => setLoop(l)}
 					/>
 				</div>
 

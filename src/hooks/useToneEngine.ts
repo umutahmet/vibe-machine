@@ -146,8 +146,15 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 
 			// set tempo and looping
 			Tone.Transport.bpm.value = pattern.bpm;
-			Tone.Transport.loop = true;
-			Tone.Transport.loopEnd = `${pattern.bars}m`;
+			if (pattern.loop?.enabled) {
+				Tone.Transport.loop = true;
+				Tone.Transport.loopStart = `${pattern.loop.start}m`;
+				Tone.Transport.loopEnd = `${pattern.loop.end}m`;
+			} else {
+				Tone.Transport.loop = true;
+				Tone.Transport.loopStart = `0m`;
+				Tone.Transport.loopEnd = `${pattern.bars}m`;
+			}
 
 			// start/stop based on isPlaying
 			if (isPlaying) {
@@ -225,8 +232,15 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 
 		// set tempo and looping
 		Tone.Transport.bpm.value = pattern.bpm;
-		Tone.Transport.loop = true;
-		Tone.Transport.loopEnd = `${pattern.bars}m`;
+		if (pattern.loop?.enabled) {
+			Tone.Transport.loop = true;
+			Tone.Transport.loopStart = `${pattern.loop.start}m`;
+			Tone.Transport.loopEnd = `${pattern.loop.end}m`;
+		} else {
+			Tone.Transport.loop = true;
+			Tone.Transport.loopStart = `0m`;
+			Tone.Transport.loopEnd = `${pattern.bars}m`;
+		}
 
 		// start/stop based on isPlaying
 		if (isPlaying) {

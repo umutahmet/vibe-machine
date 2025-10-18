@@ -65,6 +65,26 @@ export default function CanvasGrid({ pattern }: Props) {
 			ctx.stroke();
 		}
 
+		// draw loop region (under hits)
+		if (pattern.loop?.enabled) {
+			const loopStartBar = pattern.loop.start;
+			const loopEndBar = pattern.loop.end;
+			const totalBars = pattern.bars;
+			// clamp
+			const s = Math.max(0, Math.min(loopStartBar, totalBars - 1));
+			const e = Math.max(s + 1, Math.min(loopEndBar, totalBars));
+			const loopStartX = (s / totalBars) * width;
+			const loopWidth = ((e - s) / totalBars) * width;
+
+			ctx.save();
+			ctx.fillStyle = "rgba(58, 132, 255, 0.06)"; // subtle blue tint
+			ctx.fillRect(loopStartX, 0, loopWidth, height);
+			ctx.strokeStyle = "rgba(58, 132, 255, 0.12)";
+			ctx.lineWidth = 1;
+			ctx.strokeRect(loopStartX + 0.5, 0.5, loopWidth - 1, height - 1);
+			ctx.restore();
+		}
+
 		// draw hits
 		tracks.forEach((t, yi) => {
 			const hits = pattern.tracks[t];

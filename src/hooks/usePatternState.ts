@@ -59,6 +59,9 @@ export function usePatternState() {
 
 	const setBPM = (bpm: number) => setPattern((p) => ({ ...p, bpm }));
 
+	const setLoop = (loop: { enabled: boolean; start: number; end: number }) =>
+		setPattern((p) => ({ ...p, loop }));
+
 	return {
 		pattern,
 		setPattern,
@@ -67,5 +70,6 @@ export function usePatternState() {
 		addHit,
 		removeHit,
 		setBPM,
+		setLoop,
 	};
 }
