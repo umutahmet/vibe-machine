@@ -172,8 +172,12 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 			Tone.Transport.bpm.value = pattern.bpm;
 			if (pattern.loop?.enabled) {
 				Tone.Transport.loop = true;
-				Tone.Transport.loopStart = positionToToneTime((pattern.loop.start || 0) * 4);
-				Tone.Transport.loopEnd = positionToToneTime((pattern.loop.end || pattern.bars) * 4);
+				Tone.Transport.loopStart = positionToToneTime(
+					(pattern.loop.start || 0) * 4,
+				);
+				Tone.Transport.loopEnd = positionToToneTime(
+					(pattern.loop.end || pattern.bars) * 4,
+				);
 			} else {
 				Tone.Transport.loop = true;
 				Tone.Transport.loopStart = positionToToneTime(0);
@@ -205,8 +209,12 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 		Tone.Transport.bpm.value = pattern.bpm;
 		if (pattern.loop?.enabled) {
 			Tone.Transport.loop = true;
-			Tone.Transport.loopStart = positionToToneTime((pattern.loop.start || 0) * 4);
-			Tone.Transport.loopEnd = positionToToneTime((pattern.loop.end || pattern.bars) * 4);
+			Tone.Transport.loopStart = positionToToneTime(
+				(pattern.loop.start || 0) * 4,
+			);
+			Tone.Transport.loopEnd = positionToToneTime(
+				(pattern.loop.end || pattern.bars) * 4,
+			);
 		} else {
 			Tone.Transport.loop = true;
 			Tone.Transport.loopStart = positionToToneTime(0);
