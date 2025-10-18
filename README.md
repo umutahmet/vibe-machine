@@ -45,6 +45,20 @@ export default defineConfig([
 ])
 ```
 
+## Keyboard Shortcuts
+
+Global shortcuts provided by a small reusable hook (`src/hooks/useKeyboardShortcuts.ts`):
+
+- Space — Play / Stop (toggles transport)
+- Enter — Stop and rewind to the beginning
+- ArrowLeft — If loop enabled, move loop start back one bar
+- ArrowRight — If loop enabled, move loop start forward one bar
+- l — Toggle loop enabled
+- / — Focus the command input (ChatBox)
+
+The hook accepts a simple map of normalized keys (e.g. " ", "Enter", "ctrl+s", "meta+/") to handlers. See `src/lib/shortcuts.ts` for the project's keys.
+
+
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
