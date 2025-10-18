@@ -42,7 +42,7 @@ export const DEFAULT_PATTERN: Pattern = {
 };
 
 // Window system types
-export type WindowType = "transport" | "grid" | "chat" | "tracks";
+export type WindowType = "transport" | "grid" | "chat" | "tracks" | "tools";
 
 export type WindowState = {
 	id: string;

@@ -5,6 +5,7 @@ import type { ChatBoxHandle } from "./components/ChatBox";
 import ChatWindow from "./components/ChatWindow";
 import Desktop from "./components/Desktop";
 import GridWindow from "./components/GridWindow";
+import ToolsWindow from "./components/ToolsWindow";
 import TracksWindow from "./components/TracksWindow";
 import TransportWindow from "./components/TransportWindow";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
@@ -86,12 +87,13 @@ function App() {
 					<GridWindow
 						pattern={pattern}
 						tool={tool}
-						setTool={setTool}
 						addHit={addHit}
 						removeHit={removeHit}
 						setLoop={setLoop}
 					/>
 				);
+			case "tools":
+				return <ToolsWindow tool={tool} setTool={setTool} />;
 			case "chat":
 				return <ChatWindow ref={chatRef} onCommand={handleCommand} />;
 			case "tracks":
