@@ -30,15 +30,22 @@ export default function CanvasGrid({ pattern }: Props) {
 		if (!ctx) return;
 		canvas.width = canvas.clientWidth || 800;
 		const width = canvas.width;
-		canvas.height = 200;
-		const height = 200;
+		canvas.height = 300;
+		const height = 300;
 		ctx.clearRect(0, 0, width, height);
 
 		const tracks = Object.keys(pattern.tracks);
 		const steps = pattern.bars * 16;
 
+		// highlight current beat
+		const currentStep = Math.floor(playhead * 4) % steps;
+		const stepWidth = width / steps;
+		ctx.fillStyle = "rgba(58, 132, 255, 0.12)";
+		ctx.fillRect(currentStep * stepWidth, 0, stepWidth, height);
+
 		// draw grid
-		ctx.strokeStyle = "#444";
+		ctx.strokeStyle = "rgba(92, 124, 180, 0.28)";
+		ctx.lineWidth = 0.5;
 		for (let i = 0; i <= steps; i++) {
 			const x = (i / steps) * width;
 			ctx.beginPath();
@@ -47,21 +54,37 @@ export default function CanvasGrid({ pattern }: Props) {
 			ctx.stroke();
 		}
 
+		// draw track separators
+		const trackHeight = height / tracks.length;
+		ctx.strokeStyle = "rgba(45, 64, 104, 0.5)";
+		for (let i = 0; i <= tracks.length; i++) {
+			const y = (i / tracks.length) * height;
+			ctx.beginPath();
+			ctx.moveTo(0, y);
+			ctx.lineTo(width, y);
+			ctx.stroke();
+		}
+
 		// draw hits
 		tracks.forEach((t, yi) => {
 			const hits = pattern.tracks[t];
 			hits.forEach((h) => {
-				const x = (h / (pattern.bars * 4)) * width; // position in quarter beats
+				const stepIndex = Math.floor(h * 4); // assuming h is in quarter beats
+				const x = (stepIndex / steps) * width;
 				const y = (yi / tracks.length) * height;
-				ctx.fillStyle = "#0cf";
-				ctx.fillRect(x, y, 8, height / tracks.length - 4);
+				const rectHeight = trackHeight - 4;
+				const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
+				ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
+				ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
+				ctx.shadowBlur = 12;
+				ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
 			});
 		});
 
-		// playhead
-		ctx.fillStyle = "rgba(255,0,0,0.6)";
-		const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
-		ctx.fillRect(px, 0, 2, height);
+		// playhead (optional, since we have highlight)
+		// ctx.fillStyle = "#ff0000";
+		// const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
+		// ctx.fillRect(px, 0, 2, height);
 	}, [pattern, playhead]);
 
 	return <canvas ref={ref} className="vibe-canvas" />;

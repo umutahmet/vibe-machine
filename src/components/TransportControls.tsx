@@ -13,20 +13,27 @@ export default function TransportControls({
 }: Props) {
 	return (
 		<div className="transport-row">
-			<button type="button" onClick={onPlayToggle}>
-				{isPlaying ? "Stop" : "Play"}
+			<button
+				type="button"
+				onClick={onPlayToggle}
+				className="transport-toggle"
+				data-state={isPlaying ? "playing" : "stopped"}
+			>
+				<span className="toggle-icon" aria-hidden />
+				<span className="toggle-label">{isPlaying ? "Stop" : "Play"}</span>
 			</button>
-			<label className="bpm-label">
-				BPM:
+
+			<label className="tempo-cluster">
+				<span className="tempo-label">Tempo</span>
 				<input
-					className="bpm-range"
+					className="tempo-slider"
 					type="range"
 					min={60}
 					max={200}
 					value={bpm}
 					onChange={(e) => onBpmChange(Number(e.target.value))}
 				/>
-				<span className="bpm-value">{bpm}</span>
+				<span className="tempo-value">{bpm} bpm</span>
 			</label>
 		</div>
 	);
