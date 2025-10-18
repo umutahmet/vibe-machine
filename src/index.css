@@ -132,6 +132,8 @@ button {
 .grid-lane-headers {
 	display: flex;
 	flex-direction: column;
+	/* push headers down to make room for the canvas ruler */
+	padding-top: var(--ruler-height);
 	background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.03));
 	border-right: 1px solid rgba(var(--muted-border-2-rgb), 0.12);
 	min-width: 100px;
@@ -142,6 +144,7 @@ button {
 	flex-direction: row;
 	align-items: center;
 	padding: 6px 10px;
+	height: var(--grid-lane-height);
 	gap: 8px;
 	border-bottom: 1px solid var(--canvas-separator);
 	background: transparent;
