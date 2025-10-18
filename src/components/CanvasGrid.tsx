@@ -38,20 +38,61 @@ export default function CanvasGrid({
 		[tracks.length],
 	);
 
-	// Sync playhead with Tone.Transport for real-time audio position
+	// Sync playhead with Tone.Transport for real-time audio position.
+	// Use Transport.position ("bars:quarters:sixteenths") and parse it into
+	// quarter-note beats so that changing the tempo (bpm) doesn't move the
+	// playhead unexpectedly. Transport.seconds would change with bpm which
+	// caused the observed jump.
 	useEffect(() => {
 		let raf = 0;
+
+		const parsePositionToBeats = (pos: string) => {
+			// Tone.Transport.position has form "bars:quarters:sixteenths".
+			// Convert to absolute quarter-note beats.
+			// Example: "1:2:3" -> bars * 4 + quarters + sixteenths / 4
+			const parts = pos.split(":").map((p) => parseInt(p, 10) || 0);
+			const [bars = 0, quarters = 0, sixteenths = 0] = parts;
+			return bars * 4 + quarters + sixteenths / 4;
+		};
+
 		const tick = () => {
-			const seconds = Tone.Transport.seconds;
-			const beats = seconds * (pattern.bpm / 60);
-			setPlayhead(beats);
+			try {
+				const pos = Tone.Transport.position as string;
+				let beats = parsePositionToBeats(pos);
+
+				// If looping is enabled, wrap the beats into the loop range so the
+				// visual playhead doesn't transiently render past the loop end.
+				// pattern.loop.start/end are in bars; convert to beats.
+				if (pattern.loop?.enabled) {
+					const loopStartBeats = (pattern.loop.start || 0) * 4;
+					const loopEndBeats = (pattern.loop.end || pattern.bars) * 4;
+					const loopLength = Math.max(0, loopEndBeats - loopStartBeats);
+					if (loopLength > 0) {
+						// Normalize beats relative to loop start, then mod by loop length
+						let rel = beats - loopStartBeats;
+						// Use positive modulo
+						rel = ((rel % loopLength) + loopLength) % loopLength;
+						beats = loopStartBeats + rel;
+					}
+				}
+
+				setPlayhead(beats);
+			} catch {
+				// fallback: keep previous playhead
+			}
 			raf = requestAnimationFrame(tick);
 		};
 
 		raf = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(raf);
-		// only depends on bpm
-	}, [pattern.bpm]);
+		// depends on nothing that would change the parsing logic other than pattern
+		// Re-create the RAF loop when loop boundaries or pattern length change.
+	}, [
+		pattern.bars,
+		pattern.loop?.enabled,
+		pattern.loop?.start,
+		pattern.loop?.end,
+	]);
 
 	// Main rendering effect: draw the grid, ruler, and hits
 	useEffect(() => {
