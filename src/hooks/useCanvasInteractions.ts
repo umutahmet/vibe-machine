@@ -66,12 +66,15 @@ export function useCanvasInteractions(
 			const rect = canvas.getBoundingClientRect();
 			const x = ev.clientX - rect.left;
 			const y = ev.clientY - rect.top;
-			const stepIndex = getStepIndexFromX(x, canvas.width, steps);
+			// Use CSS pixel width (rect.width / canvas.clientWidth) instead of
+			// the backing bitmap (canvas.width) which is scaled by devicePixelRatio.
+			const cssWidth = rect.width || canvas.clientWidth || 0;
+			const stepIndex = getStepIndexFromX(x, cssWidth, steps);
 			const track = getTrackFromPosition(y, rulerHeight, trackHeight, tracks);
 
 			// check for loop handle drag
 			if (pattern.loop?.enabled && y >= -5 && y <= rulerHeight + 5) {
-				const handle = getLoopHandleAtPosition(x, canvas.width, pattern);
+				const handle = getLoopHandleAtPosition(x, cssWidth, pattern);
 				if (handle) {
 					dragState.current = {
 						type: handle,
@@ -94,11 +97,12 @@ export function useCanvasInteractions(
 			if (!canvas) return;
 			const rect = canvas.getBoundingClientRect();
 			const x = ev.clientX - rect.left;
+			const cssWidth = rect.width || canvas.clientWidth || 0;
 			// Update cursor if near playhead
 			if (typeof currentPlayhead === "number") {
 				const px =
 					((currentPlayhead % (pattern.bars * 4)) / (pattern.bars * 4)) *
-					canvas.width;
+					cssWidth;
 				const tolerance = 10; // slightly larger for handle
 				if (Math.abs(x - px) <= tolerance) {
 					canvas.style.cursor = "ew-resize";
@@ -118,7 +122,8 @@ export function useCanvasInteractions(
 			canvas.releasePointerCapture(ev.pointerId);
 			if ("type" in ds) {
 				// loop drag
-				const clampedBar = computeBarFromX(x, canvas.width, pattern.bars);
+				const cssWidth = rect.width || canvas.clientWidth || 0;
+				const clampedBar = computeBarFromX(x, cssWidth, pattern.bars);
 				const currentLoop = pattern.loop ?? {
 					enabled: false,
 					start: 0,
@@ -130,8 +135,9 @@ export function useCanvasInteractions(
 					onSetLoop?.({ ...currentLoop, end: clampedBar });
 				}
 			} else {
-				// hit drag
-				const stepIndex = Math.floor((x / canvas.width) * steps);
+				// hit drag - use CSS width for coordinate math to match visual layout
+				const cssWidth = rect.width || canvas.clientWidth || 0;
+				const stepIndex = Math.floor((x / cssWidth) * steps);
 				const toQuarter = Math.floor(stepIndex / 4) + (stepIndex % 4) / 4;
 				onMoveHit?.(ds.track, ds.original, toQuarter);
 			}
