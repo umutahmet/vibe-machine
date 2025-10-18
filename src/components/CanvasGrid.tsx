@@ -31,7 +31,7 @@ export default function CanvasGrid({ pattern }: Props) {
 		canvas.width = canvas.clientWidth || 800;
 		const width = canvas.width;
 		canvas.height = 300;
-		const height = 300;
+		const height = 100;
 		ctx.clearRect(0, 0, width, height);
 
 		const tracks = Object.keys(pattern.tracks);
@@ -85,24 +85,71 @@ export default function CanvasGrid({ pattern }: Props) {
 			ctx.restore();
 		}
 
-		// draw hits from blocks
+		// draw block outlines (subtle) so pattern blocks are visible per track
+		tracks.forEach((t, yi) => {
+			const track = pattern.tracks[t];
+			if (!track || !Array.isArray(track.blocks)) return;
+			track.blocks.forEach((b) => {
+				const totalBars = pattern.bars;
+				const startBar = Math.max(0, Math.min(b.start, totalBars));
+				const endBar = Math.max(
+					startBar + 0.001,
+					Math.min(b.start + (b.bars || 1), totalBars),
+				);
+				const blockStartX = (startBar / totalBars) * width;
+				const blockW = ((endBar - startBar) / totalBars) * width;
+				const y = (yi / tracks.length) * height;
+				const bh = trackHeight - 6;
+
+				ctx.save();
+				ctx.fillStyle = "rgba(47, 226, 255, 0.04)"; // very subtle fill
+				ctx.fillRect(blockStartX + 1, y + 3, Math.max(2, blockW - 2), bh);
+				ctx.strokeStyle = "rgba(47, 226, 255, 0.08)";
+				ctx.lineWidth = 1;
+				ctx.strokeRect(
+					blockStartX + 1.5,
+					y + 3.5,
+					Math.max(1, blockW - 3),
+					bh - 1,
+				);
+				ctx.restore();
+			});
+		});
+
+		// draw hits from blocks (support both legacy array and new instrument->positions map)
 		tracks.forEach((t, yi) => {
 			const track = pattern.tracks[t];
 			if (!track || !Array.isArray(track.blocks)) return;
 			track.blocks.forEach((b) => {
 				const blockStartQ = b.start * 4; // quarter-note beats at block start
-				b.hits.forEach((rel) => {
-					const abs = blockStartQ + rel; // absolute quarter-note beat position
-					const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
-					const x = (stepIndex / steps) * width;
-					const y = (yi / tracks.length) * height;
-					const rectHeight = trackHeight - 4;
-					const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
-					ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
-					ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
-					ctx.shadowBlur = 12;
-					ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
-				});
+				const y = (yi / tracks.length) * height;
+				const rectHeight = trackHeight - 4;
+				const rectWidth = Math.min(stepWidth - 4, 16); // slightly smaller
+
+				// new format: hits is an object mapping instrument->positions
+				if (b.hits && typeof b.hits === "object" && !Array.isArray(b.hits)) {
+					Object.values(b.hits as Record<string, number[]>).forEach((arr) => {
+						(arr || []).forEach((rel) => {
+							const abs = blockStartQ + rel; // absolute quarter-note beat position
+							const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
+							const x = (stepIndex / steps) * width;
+							ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
+							ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
+							ctx.shadowBlur = 12;
+							ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
+						});
+					});
+				} else if (Array.isArray(b.hits)) {
+					(b.hits as number[]).forEach((rel) => {
+						const abs = blockStartQ + rel; // absolute quarter-note beat position
+						const stepIndex = Math.floor(abs * 4); // convert to sixteenth index
+						const x = (stepIndex / steps) * width;
+						ctx.fillStyle = "rgba(47, 226, 255, 0.9)";
+						ctx.shadowColor = "rgba(31, 186, 255, 0.45)";
+						ctx.shadowBlur = 12;
+						ctx.fillRect(x + 2, y + 2, rectWidth, rectHeight);
+					});
+				}
 			});
 		});
 

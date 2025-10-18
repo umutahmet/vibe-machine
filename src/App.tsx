@@ -62,7 +62,7 @@ function App() {
 			</header>
 
 			<main className="workspace">
-				<aside className="side-rail">
+				<aside className="side-rail" style={{ ["--track-count" as unknown as string]: String(trackNames.length) }}>
 					<span className="rail-label">Tracks</span>
 					<ul className="track-list">
 						{trackNames.map((name, i) => (
