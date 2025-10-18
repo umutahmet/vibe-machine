@@ -172,12 +172,12 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 			Tone.Transport.bpm.value = pattern.bpm;
 			if (pattern.loop?.enabled) {
 				Tone.Transport.loop = true;
-				Tone.Transport.loopStart = `${pattern.loop.start}m`;
-				Tone.Transport.loopEnd = `${pattern.loop.end}m`;
+				Tone.Transport.loopStart = positionToToneTime((pattern.loop.start || 0) * 4);
+				Tone.Transport.loopEnd = positionToToneTime((pattern.loop.end || pattern.bars) * 4);
 			} else {
 				Tone.Transport.loop = true;
-				Tone.Transport.loopStart = `0m`;
-				Tone.Transport.loopEnd = `${pattern.bars}m`;
+				Tone.Transport.loopStart = positionToToneTime(0);
+				Tone.Transport.loopEnd = positionToToneTime(pattern.bars * 4);
 			}
 
 			// start/stop based on isPlaying
@@ -205,12 +205,12 @@ export function useToneEngine(pattern: Pattern, isPlaying: boolean) {
 		Tone.Transport.bpm.value = pattern.bpm;
 		if (pattern.loop?.enabled) {
 			Tone.Transport.loop = true;
-			Tone.Transport.loopStart = `${pattern.loop.start}m`;
-			Tone.Transport.loopEnd = `${pattern.loop.end}m`;
+			Tone.Transport.loopStart = positionToToneTime((pattern.loop.start || 0) * 4);
+			Tone.Transport.loopEnd = positionToToneTime((pattern.loop.end || pattern.bars) * 4);
 		} else {
 			Tone.Transport.loop = true;
-			Tone.Transport.loopStart = `0m`;
-			Tone.Transport.loopEnd = `${pattern.bars}m`;
+			Tone.Transport.loopStart = positionToToneTime(0);
+			Tone.Transport.loopEnd = positionToToneTime(pattern.bars * 4);
 		}
 
 		// start/stop based on isPlaying
