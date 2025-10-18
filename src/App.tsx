@@ -22,19 +22,55 @@ function App() {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const trackNames = Object.keys(pattern.tracks);
 
-	const { windows, addWindow, updateWindowPosition, bringToFront } =
-		useWindowManager();
+	const {
+		windows,
+		addWindow,
+		loadWindows,
+		updateWindowPosition,
+		bringToFront,
+	} = useWindowManager();
 
 	const initializedRef = useRef(false);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 🤷‍♂️
 	useEffect(() => {
 		if (!initializedRef.current) {
-			// Initialize default windows
-			addWindow("transport", { x: 50, y: 50 }, { width: 400, height: 100 });
-			addWindow("grid", { x: 50, y: 200 }, { width: 800, height: 400 });
-			addWindow("chat", { x: 900, y: 50 }, { width: 300, height: 200 });
-			addWindow("tracks", { x: 900, y: 300 }, { width: 300, height: 300 });
+			const saved = localStorage.getItem("vibe-machine-windows");
+			if (saved) {
+				try {
+					const parsed: WindowState[] = JSON.parse(saved);
+					if (parsed.length > 0) {
+						loadWindows(parsed);
+					} else {
+						// Empty saved data, use defaults
+						addWindow(
+							"transport",
+							{ x: 50, y: 50 },
+							{ width: 400, height: 100 },
+						);
+						addWindow("grid", { x: 50, y: 200 }, { width: 800, height: 400 });
+						addWindow("chat", { x: 900, y: 50 }, { width: 300, height: 200 });
+						addWindow(
+							"tracks",
+							{ x: 900, y: 300 },
+							{ width: 300, height: 300 },
+						);
+					}
+				} catch (error) {
+					console.warn("Failed to load saved windows:", error);
+					// Fallback to defaults
+					addWindow("transport", { x: 50, y: 50 }, { width: 400, height: 100 });
+					addWindow("grid", { x: 50, y: 200 }, { width: 800, height: 400 });
+					addWindow("chat", { x: 900, y: 50 }, { width: 300, height: 200 });
+					addWindow("tracks", { x: 900, y: 300 }, { width: 300, height: 300 });
+				}
+			} else {
+				// Initialize default windows
+				addWindow("transport", { x: 50, y: 50 }, { width: 400, height: 100 });
+				addWindow("grid", { x: 50, y: 200 }, { width: 800, height: 400 });
+				addWindow("chat", { x: 900, y: 50 }, { width: 300, height: 200 });
+				addWindow("tracks", { x: 900, y: 300 }, { width: 300, height: 300 });
+			}
 			initializedRef.current = true;
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps

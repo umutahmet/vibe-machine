@@ -1,10 +1,17 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { WindowState, WindowType } from "../types";
 
 export function useWindowManager() {
 	const [windows, setWindows] = useState<WindowState[]>([]);
 	const nextIdRef = useRef(1);
 	const nextZIndexRef = useRef(1);
+
+	// Save windows to localStorage whenever they change
+	useEffect(() => {
+		if (windows.length > 0) {
+			localStorage.setItem("vibe-machine-windows", JSON.stringify(windows));
+		}
+	}, [windows]);
 
 	const addWindow = useCallback(
 		(
@@ -23,6 +30,16 @@ export function useWindowManager() {
 		},
 		[],
 	);
+
+	const loadWindows = useCallback((initialWindows: WindowState[]) => {
+		setWindows(initialWindows);
+		// Update refs to avoid conflicts
+		nextIdRef.current =
+			Math.max(...initialWindows.map((w) => parseInt(w.id.split("-")[1])), 0) +
+			1;
+		nextZIndexRef.current =
+			Math.max(...initialWindows.map((w) => w.zIndex), 0) + 1;
+	}, []);
 
 	const removeWindow = useCallback((id: string) => {
 		setWindows((prev) => prev.filter((w) => w.id !== id));
@@ -56,6 +73,7 @@ export function useWindowManager() {
 	return {
 		windows,
 		addWindow,
+		loadWindows,
 		removeWindow,
 		updateWindowPosition,
 		bringToFront,
