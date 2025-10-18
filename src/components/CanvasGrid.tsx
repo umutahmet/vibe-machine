@@ -6,6 +6,7 @@ import type { Pattern } from "../types";
 import { drawGridBody } from "./CanvasGridBody";
 import { drawHits } from "./CanvasHits";
 import { drawRuler } from "./CanvasRuler";
+import { getCanvasColors } from "./canvasConfig";
 
 type GridProps = {
 	pattern: Pattern;
@@ -89,7 +90,8 @@ export default function CanvasGrid({
 		ctx.restore(); // end translate
 
 		// Draw playhead line
-		ctx.fillStyle = "#ff0000";
+		const COLORS = getCanvasColors();
+		ctx.fillStyle = COLORS.handleFill || `rgba(var(--accent-gold-rgb), 1)`;
 		const px = ((playhead % (pattern.bars * 4)) / (pattern.bars * 4)) * width;
 		ctx.fillRect(px, 0, 2, canvas.height);
 	}, [pattern, playhead, tracks, steps, gridHeight]);

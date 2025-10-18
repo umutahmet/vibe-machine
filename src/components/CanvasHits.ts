@@ -1,5 +1,5 @@
 import type { Pattern } from "../types";
-import { COLORS } from "./canvasConfig";
+import { getCanvasColors } from "./canvasConfig";
 
 // Draw hits and blocks. Assumes ctx origin is at the top-left of the grid area
 export function drawHits(
@@ -10,6 +10,7 @@ export function drawHits(
 	trackHeight: number,
 	pattern: Pattern,
 ) {
+	const COLORS = getCanvasColors();
 	const stepWidth = width / steps;
 
 	// draw block outlines and hits
@@ -29,9 +30,10 @@ export function drawHits(
 			const bh = trackHeight - 6;
 
 			ctx.save();
-			ctx.fillStyle = "rgba(47, 226, 255, 0.04)"; // very subtle fill
+			ctx.fillStyle = COLORS.loopFill || `rgba(var(--accent-gold-rgb), 0.04)`; // very subtle fill
 			ctx.fillRect(blockStartX + 1, y + 3, Math.max(2, blockW - 2), bh);
-			ctx.strokeStyle = "rgba(47, 226, 255, 0.08)";
+			ctx.strokeStyle =
+				COLORS.loopStroke || `rgba(var(--accent-gold-rgb), 0.08)`;
 			ctx.lineWidth = 1;
 			ctx.strokeRect(
 				blockStartX + 1.5,

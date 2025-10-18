@@ -1,5 +1,5 @@
 import type { Pattern } from "../types";
-import { COLORS, RULER_HEIGHT } from "./canvasConfig";
+import { getCanvasColors, RULER_HEIGHT } from "./canvasConfig";
 
 // Pure drawing helper for the top ruler. Keeps CanvasGrid smaller and focused.
 export function drawRuler(
@@ -9,9 +9,10 @@ export function drawRuler(
 	pattern: Pattern,
 ) {
 	const rulerHeight = RULER_HEIGHT;
+	const COLORS = getCanvasColors();
 	ctx.fillStyle = COLORS.rulerBg;
 	ctx.fillRect(0, 0, width, rulerHeight);
-	ctx.strokeStyle = "rgba(100, 100, 100, 0.5)";
+	ctx.strokeStyle = COLORS.separator || `rgba(100, 100, 100, 0.5)`;
 	ctx.lineWidth = 1;
 
 	for (let bar = 0; bar <= pattern.bars; bar++) {

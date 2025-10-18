@@ -1,5 +1,5 @@
 import type { Pattern } from "../types";
-import { COLORS, HANDLE_HEIGHT, HANDLE_WIDTH } from "./canvasConfig";
+import { getCanvasColors, HANDLE_HEIGHT, HANDLE_WIDTH } from "./canvasConfig";
 
 // Draw grid area (assumes ctx origin is at the top-left of the grid area)
 export function drawGridBody(
@@ -12,6 +12,8 @@ export function drawGridBody(
 	playhead: number,
 	steps: number,
 ) {
+	const COLORS = getCanvasColors();
+
 	// highlight current beat
 	const currentStep = Math.floor(playhead * 4) % steps;
 	const stepWidth = width / steps;
