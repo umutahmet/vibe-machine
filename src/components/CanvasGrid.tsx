@@ -152,8 +152,12 @@ export default function CanvasGrid({
 				// If transport is playing, apply smoothing only on the x-axis movement.
 				// When not playing (stopped/paused), snap the playhead to the transport
 				// to avoid enter/exit animations.
-				const isPlaying = Tone.Transport.state === "started";
-				if (isPlaying) {
+				// Treat 'paused' as still wanting a smooth transition; only snap when
+				// fully stopped. This preserves the pause animation while keeping
+				// Enter/stop snapping behavior.
+				const transportState = Tone.Transport.state;
+				const shouldSmooth = transportState !== "stopped";
+				if (shouldSmooth) {
 					applySmoothing(interpBeats);
 					setPlayhead(smoothedPlayheadRef.current);
 				} else {

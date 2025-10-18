@@ -53,16 +53,20 @@ export function useAppShortcuts({
 		},
 		// biome-ignore lint/complexity/useLiteralKeys: 🤷‍♂️
 		["Enter"]: (e: KeyboardEvent) => {
-			// stop and rewind to beginning
+			// stop and rewind to loop start (or beginning)
 			e.preventDefault();
 			setIsPlaying(false);
 			try {
 				Tone.Transport.stop();
-				// rewind to start using the position API
-				// format: "bars:quarters:sixteenths"
-				// set to 0 bars
-				// @ts-expect-error: settable on runtime Transport
-				Tone.Transport.position = "0:0:0";
+				// Determine rewind target from current pattern's loop if enabled.
+				setPattern((p) => {
+					const loop = p.loop ?? { enabled: false, start: 0, end: p.bars };
+					const startBar = loop.enabled ? loop.start : 0;
+					// format: "bars:quarters:sixteenths"
+					// @ts-expect-error: settable on runtime Transport
+					Tone.Transport.position = `${startBar}:0:0`;
+					return p;
+				});
 			} catch (err) {
 				console.error(err);
 			}
