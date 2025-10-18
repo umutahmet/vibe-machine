@@ -1,7 +1,8 @@
 import React, { useImperativeHandle, useRef, useState } from "react";
+import { useAppContext } from "../context/AppContext";
 
 type Props = {
-	onCommand: (cmd: string) => void;
+	onCommand?: (cmd: string) => void;
 };
 
 export type ChatBoxHandle = {
@@ -9,6 +10,9 @@ export type ChatBoxHandle = {
 };
 
 const ChatBox = React.forwardRef<ChatBoxHandle, Props>(({ onCommand }, ref) => {
+	const ctx = useAppContext();
+	const handler = onCommand ?? ctx.handleCommand;
+
 	const [value, setValue] = useState("");
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -19,7 +23,7 @@ const ChatBox = React.forwardRef<ChatBoxHandle, Props>(({ onCommand }, ref) => {
 	const submit = (e?: React.FormEvent) => {
 		e?.preventDefault();
 		if (!value.trim()) return;
-		onCommand(value.trim());
+		handler(value.trim());
 		setValue("");
 	};
 

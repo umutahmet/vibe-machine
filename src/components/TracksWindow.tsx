@@ -1,8 +1,9 @@
-interface TracksWindowProps {
-	trackNames: string[];
-}
+import { useAppContext } from "../context/AppContext";
 
-export default function TracksWindow({ trackNames }: TracksWindowProps) {
+export default function TracksWindow() {
+	const { pattern } = useAppContext();
+	const trackNames = Object.keys(pattern.tracks);
+
 	return (
 		<ul className="track-list">
 			{trackNames.map((name, i) => (

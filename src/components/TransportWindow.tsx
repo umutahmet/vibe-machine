@@ -1,32 +1,17 @@
+import { useAppContext } from "../context/AppContext";
 import TransportControls from "./TransportControls";
 
-interface TransportWindowProps {
-	bpm: number;
-	isPlaying: boolean;
-	onPlayToggle: () => void;
-	onBpmChange: (bpm: number) => void;
-	bars: number;
-	loop?: { enabled: boolean; start: number; end: number };
-	setLoop: (loop: { enabled: boolean; start: number; end: number }) => void;
-}
+export default function TransportWindow() {
+	const { pattern, isPlaying, setIsPlaying, setBPM, setLoop } = useAppContext();
 
-export default function TransportWindow({
-	bpm,
-	isPlaying,
-	onPlayToggle,
-	onBpmChange,
-	bars,
-	loop,
-	setLoop,
-}: TransportWindowProps) {
 	return (
 		<TransportControls
-			bpm={bpm}
+			bpm={pattern.bpm}
 			isPlaying={isPlaying}
-			onPlayToggle={onPlayToggle}
-			onBpmChange={onBpmChange}
-			bars={bars}
-			loop={loop}
+			onPlayToggle={() => setIsPlaying((s) => !s)}
+			onBpmChange={setBPM}
+			bars={pattern.bars}
+			loop={pattern.loop}
 			setLoop={setLoop}
 		/>
 	);

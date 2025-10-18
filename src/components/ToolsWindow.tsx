@@ -1,11 +1,9 @@
+import { useAppContext } from "../context/AppContext";
 import ToolName from "../lib/tools";
 
-interface ToolsWindowProps {
-	tool: ToolName;
-	setTool: (tool: ToolName) => void;
-}
+export default function ToolsWindow() {
+	const { tool, setTool } = useAppContext();
 
-export default function ToolsWindow({ tool, setTool }: ToolsWindowProps) {
 	return (
 		<div style={{ display: "flex", gap: 8, alignItems: "center" }}>
 			<button

@@ -1,12 +1,11 @@
 import React from "react";
-import ChatBox, { type ChatBoxHandle } from "./ChatBox";
+import { useAppContext } from "../context/AppContext";
+import ChatBox from "./ChatBox";
 
-interface ChatWindowProps {
-	onCommand: (cmd: string) => void;
-}
-
-const ChatWindow = React.forwardRef<ChatBoxHandle, ChatWindowProps>(
-	({ onCommand }, ref) => <ChatBox ref={ref} onCommand={onCommand} />,
-);
+const ChatWindow = React.forwardRef(function ChatWindowForward() {
+	const { handleCommand, chatRef } = useAppContext();
+	// forward the provider ref to the internal chat ref so parent (App) can call focus()
+	return <ChatBox ref={chatRef} onCommand={handleCommand} />;
+});
 
 export default ChatWindow;
